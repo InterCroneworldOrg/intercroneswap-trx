@@ -1,12 +1,17 @@
 # ISwap Interface
 
-An open source interface for ISwap -- a protocol for decentralized exchange of Ethereum tokens.
+An open source interface for ISwap -- a protocol for decentralized exchange of Tron tokens.
 
 - Website: [InterCroneswap.com](https://intercroneswap.com)
-- Interface: [TRX.Iswap](https://trx.intercroneswap.com)
+- Interface: [trx.intercroneswap](https://trx.intercroneswap.com)
 - Docs: [ISwap/docs/](https://docs.intercroneswap.finance)
-- Reddit: [/r/]()
 - Email: [office@intercroneswap.com](mailto:office@intercroneswap.com)
+
+- X: [X/](https://twitter.com/IntercroneWorld)
+- IG: [instagram.com/intercrone/](https://www.instagram.com/intercrone)
+- FB: [facebook.com/InterCrone/](https://www.facebook.com/InterCrone)
+- YT: [youtube.com/c/InterCroneWorld/](https://www.youtube.com/c/InterCroneWorld)
+- TG: [t.me/intercroneworld/](https://t.me/intercroneworld)
 
 ## Accessing the ISwap Interface
 
@@ -17,7 +22,7 @@ or visit [InterCrone World](https://Intercroneswap.com).
 ## Listing a token
 
 Please see the
-[@ISwap/default-token-list](https://github.com/ISwap/default-token-list)
+[@ISwap/default-token-list](https://github.com/InterCroneworldOrg/token-lists/blob/main/intercroneswap_default.json)
 repository.
 
 ## Development
