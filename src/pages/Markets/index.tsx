@@ -53,6 +53,7 @@ export default function Markets({
   const theme = useContext(ThemeContext);
 
   const [totalValueLocked, setTotalValueLocked] = useState('');
+  const [results, setResults] = useState<any[]>([]);
   const fetchTotalValueLocked = async () => {
     const response = await (
       await fetch(`${BACKEND_URL}/markets/totalLocked?chainId=${chainId && ChainId.MAINNET}`)
@@ -65,6 +66,48 @@ export default function Markets({
   useEffect(() => {
     fetchTotalValueLocked();
   }, [totalValueLocked]);
+
+  async function fetchallData(page: number) {
+    const url = `${BACKEND_URL}/markets?chainId=${chainId && ChainId.MAINNET}&page=${page}`;
+
+    try {
+      const response = await fetch(url);
+
+      if (!response.ok) {
+        throw new Error(`Error fetching data from page ${page}`);
+      }
+
+      const jsonData = await response.json();
+      return jsonData;
+    } catch (error) {
+      console.error(error);
+      // Handle the error if needed
+      return null;
+    }
+  }
+
+  async function fetchDataFromAllPages() {
+    const numberOfPages = 7;
+    const results = [];
+
+    for (let page = 1; page <= numberOfPages; page++) {
+      const data = await fetchallData(page);
+      if (data !== null) {
+        results.push(data);
+      }
+    }
+
+    const resultsMarkets = results.flatMap((result) => {
+      return result.data?.markets || [];
+    });
+
+    setResults(resultsMarkets);
+  }
+
+  useEffect(() => {
+    fetchDataFromAllPages();
+  }, []);
+
   const isMobile = window.innerWidth <= MEDIA_WIDTHS.upToMedium;
   const { chainId } = useActiveWeb3React();
   const inputRef = useRef<HTMLInputElement>();
@@ -85,21 +128,37 @@ export default function Markets({
     fetchData();
   }, [page]);
 
-  const markets = useMarkets(pairInfos);
+  const markets = useMarkets(pairInfos) || [];
+  const alldata = useMarkets(results) || [];
 
   const marketList = useMemo(() => {
+    let combinedMarkets = markets;
+
     if (searchQuery) {
-      return markets?.filter((info: MarketInfo) => {
-        return (
-          info.pair.token0.symbol?.toLowerCase().includes(searchQuery) ||
-          info.pair.token0.name?.toLowerCase().includes(searchQuery) ||
-          info.pair.token1.symbol?.toLowerCase().includes(searchQuery) ||
-          info.pair.token1.name?.toLowerCase().includes(searchQuery)
-        );
-      });
+      // Check if markets is not null before spreading its values
+      combinedMarkets = [...markets, ...alldata];
     }
-    return markets;
-  }, [markets, searchQuery, page]);
+
+    const itemsPerPage = 10;
+
+    const currentPage = page ? parseInt(page, 10) : 1;
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+
+    const filteredMarkets = combinedMarkets.filter((info: MarketInfo) => {
+      return (
+        info.pair.token0.symbol?.toLowerCase().includes(searchQuery) ||
+        info.pair.token0.name?.toLowerCase().includes(searchQuery) ||
+        info.pair.token1.symbol?.toLowerCase().includes(searchQuery) ||
+        info.pair.token1.name?.toLowerCase().includes(searchQuery)
+      );
+    });
+    console.log(startIndex, ' ', endIndex);
+    if (searchQuery) {
+      return filteredMarkets.slice(startIndex, endIndex);
+    }
+    return filteredMarkets;
+  }, [markets, alldata, searchQuery, page]);
 
   const stakingRewardInfos: StakingRewardsInfo[] = useMemo(() => {
     const tmpinfos: StakingRewardsInfo[] = [];
