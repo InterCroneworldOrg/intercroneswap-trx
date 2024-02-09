@@ -386,7 +386,7 @@ const Home = () => {
                 <img src={Instagram} alt="" />
               </SocialIcons>
             </CommunityTextBox>
-            <img className={Styles.chessicon} src={Communitychessicon} alt="" />
+            <img className={Styles.icr100} src={Communitychessicon} alt="" />
           </Row>
         </Container>
       </CommunityBox>

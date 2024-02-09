@@ -1,7 +1,7 @@
 import { Col, Container, Row } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
 import Style from '../../styles/footer.module.css';
-import ChessLarge from '../../assets/images/chess-big-icon.png';
+import icr500dark from '../../assets/images/icr500dark.png';
 import styled from 'styled-components';
 import Twitter from '../../assets/svg/Twitter_white.svg';
 import Telegram from '../../assets/svg/Telegram_white.svg';
@@ -13,7 +13,7 @@ import PriceCard from '../PriceCard';
 import { FooterBlockchains } from '../Blockchains';
 
 const FooterWithChess = styled.div`
-  background: url(${ChessLarge});
+  background: url(${icr500dark});
   background-repeat: no-repeat;
   background-position: 100% center;
   background-size: contain;
@@ -95,7 +95,7 @@ const Footer = () => {
                 </Link>
               </li>
               <li>
-                <Link to="/market" className={`${Style.link} nav-link`}>
+                <Link to="/markets" className={`${Style.link} nav-link`}>
                   Market
                 </Link>
               </li>

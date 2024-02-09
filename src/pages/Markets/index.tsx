@@ -27,7 +27,6 @@ const tokenPairsAreEqual = (tokens1: [Token, Token], tokens2?: [Token, Token]): 
   }
   const [token10, token11] = tokens1;
   const [token20, token21] = tokens2;
-  
 
   if (!token10.equals(token20) && !token10.equals(token21)) return false;
   if (!token11.equals(token20) && !token11.equals(token21)) return false;
@@ -53,8 +52,8 @@ export default function Markets({
   const { t } = useTranslation();
   const theme = useContext(ThemeContext);
 
-  const [totalValueLocked, setTotalValueLocked] = useState('');  
-  const [results, setResults] = useState<any[]>([]); 
+  const [totalValueLocked, setTotalValueLocked] = useState('');
+  const [results, setResults] = useState<any[]>([]);
   const fetchTotalValueLocked = async () => {
     const response = await (
       await fetch(`${BACKEND_URL}/markets/totalLocked?chainId=${chainId && ChainId.MAINNET}`)
@@ -80,7 +79,6 @@ export default function Markets({
 
       const jsonData = await response.json();
       return jsonData;
-
     } catch (error) {
       console.error(error);
       // Handle the error if needed
@@ -98,17 +96,17 @@ export default function Markets({
         results.push(data);
       }
     }
-    
-    const resultsMarkets = results.flatMap(result => {
+
+    const resultsMarkets = results.flatMap((result) => {
       return result.data?.markets || [];
     });
-      
-    setResults(resultsMarkets);   
+
+    setResults(resultsMarkets);
   }
 
   useEffect(() => {
     fetchDataFromAllPages();
-  }, [])
+  }, []);
 
   const isMobile = window.innerWidth <= MEDIA_WIDTHS.upToMedium;
   const { chainId } = useActiveWeb3React();
@@ -135,19 +133,18 @@ export default function Markets({
 
   const marketList = useMemo(() => {
     let combinedMarkets = markets;
-  
+
     if (searchQuery) {
       // Check if markets is not null before spreading its values
       combinedMarkets = [...markets, ...alldata];
     }
-  
+
     const itemsPerPage = 10;
-    
-  const currentPage = page ? parseInt(page, 10) : 1;
+
+    const currentPage = page ? parseInt(page, 10) : 1;
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
 
-  
     const filteredMarkets = combinedMarkets.filter((info: MarketInfo) => {
       return (
         info.pair.token0.symbol?.toLowerCase().includes(searchQuery) ||
@@ -156,8 +153,8 @@ export default function Markets({
         info.pair.token1.name?.toLowerCase().includes(searchQuery)
       );
     });
-    console.log(startIndex, " ", endIndex)
-    if(searchQuery){
+    console.log(startIndex, ' ', endIndex);
+    if (searchQuery) {
       return filteredMarkets.slice(startIndex, endIndex);
     }
     return filteredMarkets;
