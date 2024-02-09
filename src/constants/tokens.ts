@@ -107,12 +107,34 @@ export const KLV = new Token(ChainId.MAINNET, '0xD8B8089856CED3038601CBEB1E3F765
 export const Doge = new Token(ChainId.MAINNET, '0x53A58D995EF4937017A8AB47722186A12A27905E', 8, 'Doge ', 'Dogecoin');
 export const TURU = new Token(ChainId.MAINNET, '0x6471F94B57853C253273275FD695606AFF44CD8F', 8, 'turu ', 'turu');
 export const BBT = new Token(ChainId.MAINNET, '0x4CD9F886FCFD6BBDB234954B817F47BD49B6667C', 8, 'BBT', 'BabyTuru');
+export const CCC = new Token(
+  ChainId.MAINNET,
+  '0xAEEE06D6DE1E3D65864A0765104599E2315D4DC5',
+  18,
+  'CCC',
+  'Coconut Chicken',
+);
+
 export const BCC = new Token(
   ChainId.MAINNET,
   '0xECD5F1B3AD33FDF1022DA2EA77802951DC07633C',
   18,
   'BCC',
   'Baby Coconut Chicken',
+);
+export const BBC = new Token(
+  ChainId.MAINNET,
+  '0x1FED0629E3FF6B7D1E8C0D7656854FA44ECBFC86',
+  18,
+  'BBC',
+  'Big Black Cockerel',
+);
+export const ECO = new Token(
+  ChainId.MAINNET,
+  '0xA9432C25FEA3A5A8E1ABF21C2B993F6589E1627D',
+  18,
+  'ECO',
+  'Eggcellent Chicken One',
 );
 export const COME = new Token(
   ChainId.MAINNET,
@@ -147,7 +169,10 @@ export const DefaultTokensMap: { [tokenSymbol: string]: Token } = {
   ['TURU']: TURU,
   ['turu']: TURU,
   ['BBT']: BBT,
+  ['CCC']: CCC,
   ['BCC']: BCC,
+  ['BBC']: BBC,
+  ['ECO']: ECO,
   ['COME']: COME,
   ['SST']: SST,
   ['PLZ']: PLZ,
