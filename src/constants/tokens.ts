@@ -1,6 +1,5 @@
 import { ChainId, Token, WETH } from '@intercroneswap/v2-sdk';
 import { BACKEND_URL } from '.';
-import { useEffect } from 'react';
 
 export function getTokensFromDefaults(symbols: string): [Token, Token] | undefined {
   const symbolsSplit = symbols.split('-');
@@ -61,9 +60,6 @@ const initializeFetchTokens = async () => {
 (async () => {
   await initializeFetchTokens();
 })();
-
-  
-
 
 export function getTokenFromDefaults(symbol: string): Token | undefined {
   let token: Token | undefined = symbol === 'TRX' ? WETH[ChainId.MAINNET] : DefaultTokensMap[symbol];
