@@ -27,10 +27,7 @@ const setBackendUrl = async () => {
 let url = '';
 
 // Immediately invoke the setBackendUrl function
-(async () => {
-  await setBackendUrl();
-  // console.log(url);
-})();
+
 
 export const fetchTokens = async () => {
   const response = await fetch(`${url}/tokens/all?chainId=11111`, {
@@ -48,7 +45,21 @@ export const fetchTokens = async () => {
   }
 };
 
-fetchTokens();
+
+let isFetchTokensInitialized = false; // Flag to track whether fetchTokens has been called
+
+const initializeFetchTokens = async () => {
+  if (!isFetchTokensInitialized) {
+    await setBackendUrl();
+    await fetchTokens();
+    isFetchTokensInitialized = true;
+  }
+};
+
+// Immediately invoke the initializeFetchTokens function
+(async () => {
+  await initializeFetchTokens();
+})();
 
 export function getTokenFromDefaults(symbol: string): Token | undefined {
   let token: Token | undefined = symbol === 'TRX' ? WETH[ChainId.MAINNET] : DefaultTokensMap[symbol];
