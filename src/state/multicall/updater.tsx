@@ -18,11 +18,9 @@ import {
 import axios from 'axios';
 import rateLimit from 'axios-rate-limit';
 
-// Chunk calls so we do not exceed the gas limit
+// chunk calls so we do not exceed the gas limit
 const CALL_CHUNK_SIZE = 25;
 const BACKOFF_TIMEOUT = 5000;
-
-// Create a rate-limited axios instance
 const http = rateLimit(axios.create(), { maxRequests: 2, perMilliseconds: 1000 });
 
 /**
@@ -42,7 +40,7 @@ async function fetchChunk(
   try {
     // Use rate-limited axios instance here
     const response = await http.post(
-      'https://uo5c40py0q8udu7qje2nyo6ti8fue4.mainnet.tron.tronql.com/wallet/triggerconstantcontract',
+      'https://mainnet.tron.tronql.com/uo5c40py0q8udu7qje2nyo6ti8fue4/wallet/triggerconstantcontract',
       {
         multicallContract: multicallContract.address,
         chunk: chunk.map((obj) => [obj.address, obj.callData]),
@@ -216,9 +214,7 @@ export default function Updater(): null {
           });
 
         // Add a delay between chunks to avoid rate limit issues
-        setTimeout(() => {}, BACKOFF_TIMEOUT);
-
-        return cancel;
+        return () => setTimeout(cancel, BACKOFF_TIMEOUT);
       }),
     };
   }, [chainId, multicallContract, dispatch, serializedOutdatedCallKeys, latestBlockNumber]);
