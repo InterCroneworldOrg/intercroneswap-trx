@@ -28,7 +28,6 @@ let url = '';
 
 // Immediately invoke the setBackendUrl function
 
-
 export const fetchTokens = async () => {
   const response = await fetch(`${url}/tokens/all?chainId=11111`, {
     method: 'GET',
@@ -44,7 +43,6 @@ export const fetchTokens = async () => {
     }
   }
 };
-
 
 let isFetchTokensInitialized = false; // Flag to track whether fetchTokens has been called
 
