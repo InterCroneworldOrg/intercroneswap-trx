@@ -24,7 +24,7 @@ interface tronWeb {
   };
   fullNode?: {
     chainType?: '';
-    host?: 'https://mainnet.tron.tronql.com/uo5c40py0q8udu7qje2nyo6ti8fue4/';
+    host?: 'https://mainnet.tron.tronql.com/uo5c40py0q8udu7qje2nyo6ti8fue4';
   };
 }
 
