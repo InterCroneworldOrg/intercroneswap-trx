@@ -1,6 +1,6 @@
-# ISwap Interface
+# InterCroneSwap Interface
 
-An open source interface for ISwap -- a protocol for decentralized exchange of Ethereum tokens.
+An open source interface for InterCroneSwap -- a protocol for decentralized exchange of Tron tokens.
 
 - Website: [InterCroneswap.com](https://intercroneswap.com)
 - Interface: [TRX.Iswap](https://trx.intercroneswap.com)
@@ -8,9 +8,9 @@ An open source interface for ISwap -- a protocol for decentralized exchange of E
 - Reddit: [/r/]()
 - Email: [office@intercroneswap.com](mailto:office@intercroneswap.com)
 
-## Accessing the ISwap Interface
+## Accessing the InterCroneSwap Interface
 
-To access the ISwap Interface, use an IPFS gateway link from the
+To access the InterCroneSwap Interface, use an IPFS gateway link from the
 [latest release](https://github.com/ISwap/ISwap-interface/releases/latest),
 or visit [InterCrone World](https://Intercroneswap.com).
 
@@ -43,7 +43,7 @@ To have the interface default to a different network when a wallet is not connec
 3. Change `REACT_APP_NETWORK_URL` to e.g. `"https://{YOUR_NETWORK_ID}.infura.io/v3/{YOUR_INFURA_KEY}"`
 
 Note that the interface only works on testnets where both
-[ISwap V1](https://intercroneswap.com/docs/v1/smart-contracts/factory/) and
+[InterCroneSwap V1](https://intercroneswap.com/docs/v1/smart-contracts/factory/) and
 [multicall](https://github.com/makerdao/multicall) are deployed.
 The interface will not work on other networks.
 
@@ -52,8 +52,8 @@ The interface will not work on other networks.
 **Please open all pull requests against the `master` branch.**
 CI checks will run against all PRs.
 
-## Accessing ISwap Interface
+## Accessing InterCroneSwap Interface
 
-The ISwap Interface supports swapping against, and migrating or removing liquidity from ISwap . However,
-if you would like to use ISwap, the ISwap interface for mainnet and testnets is accessible via IPFS gateways
+The InterCroneSwap Interface supports swapping against, and migrating or removing liquidity from InterCroneSwap . However,
+if you would like to use InterCroneSwap, the InterCroneSwap interface for mainnet and testnets is accessible via IPFS gateways
 linked from the [v1.0.0 release](https://github.com/ISwap/ISwap-interface/releases/tag/v1.0.0).
