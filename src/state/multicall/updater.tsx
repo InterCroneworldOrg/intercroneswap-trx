@@ -203,7 +203,10 @@ export default function Updater(): null {
             );
           });
 
-        setTimeout(() => {}, BACKOFF_TIMEOUT);
+        // Füge hier die setTimeout-Funktion ein
+        setTimeout(() => {
+          // Code, der nach einer Verzögerung ausgeführt werden soll
+        }, BACKOFF_TIMEOUT); // BACKOFF_TIMEOUT ist die Zeit der Verzögerung in Millisekunden
 
         return cancel;
       }),
