@@ -1,0 +1,22 @@
+name: Docker Image GHCR
+
+on:
+  push:
+    branches: ['main-trx-v2']
+  pull_request:
+    branches: ['main-trx-v2']
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Build the Docker image
+        run: docker build . --file Dockerfile --tag ghcr.io/intercroneworldorg/intercroneswap-trx:v2
+
+      - name: Login to GitHub Container Registry
+        run: docker login ghcr.io -u ${{ github.actor }} -p ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push Docker image to GitHub Container Registry
+        run: docker push ghcr.io/intercroneworldorg/intercroneswap-trx:v2
