@@ -15,13 +15,10 @@ import {
   parseCallKey,
   updateMulticallResults,
 } from './actions';
-import axios from 'axios';
-import rateLimit from 'axios-rate-limit';
 
 // chunk calls so we do not exceed the gas limit
 const CALL_CHUNK_SIZE = 25;
 const BACKOFF_TIMEOUT = 5000;
-const http = rateLimit(axios.create(), { maxRequests: 2, perMilliseconds: 1000 });
 
 /**
  * Fetches a chunk of calls, enforcing a minimum block number constraint
@@ -38,25 +35,18 @@ async function fetchChunk(
 
   let resultsBlockNumber, returnData;
   try {
-    // Use rate-limited axios instance here
-    const response = await http.post(
-      'https://mainnet.tron.tronql.com/uo5c40py0q8udu7qje2nyo6ti8fue4/wallet/triggerconstantcontract',
-      {
-        multicallContract: multicallContract.address,
-        chunk: chunk.map((obj) => [obj.address, obj.callData]),
-      },
+    [resultsBlockNumber, returnData] = await multicallContract.aggregate(
+      chunk.map((obj) => [obj.address, obj.callData]),
     );
-    resultsBlockNumber = response.data.resultsBlockNumber;
-    returnData = response.data.returnData;
   } catch (error) {
     console.debug('Failed to fetch chunk inside retry', error);
     throw error;
   }
-  if (resultsBlockNumber < minBlockNumber) {
-    console.debug(`Fetched results for old block number: ${resultsBlockNumber} vs. ${minBlockNumber}`);
+  if (resultsBlockNumber.toNumber() < minBlockNumber) {
+    console.debug(`Fetched results for old block number: ${resultsBlockNumber.toString()} vs. ${minBlockNumber}`);
     throw new RetryableError('Fetched for old block number');
   }
-  return { results: returnData, blockNumber: resultsBlockNumber };
+  return { results: returnData, blockNumber: resultsBlockNumber.toNumber() };
 }
 
 /**
@@ -213,8 +203,9 @@ export default function Updater(): null {
             );
           });
 
-        // Add a delay between chunks to avoid rate limit issues
-        return () => setTimeout(cancel, BACKOFF_TIMEOUT);
+        setTimeout(() => {}, BACKOFF_TIMEOUT);
+
+        return cancel;
       }),
     };
   }, [chainId, multicallContract, dispatch, serializedOutdatedCallKeys, latestBlockNumber]);
