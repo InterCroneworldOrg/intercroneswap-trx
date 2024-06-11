@@ -166,47 +166,45 @@ export default function Updater(): null {
           minWait: 2500,
           maxWait: 7500,
         });
-        promise
-          .then(({ results: returnData, blockNumber: fetchBlockNumber }) => {
-            cancellations.current = { cancellations: [], blockNumber: latestBlockNumber };
 
-            const firstCallKeyIndex = chunkedCalls
-              .slice(0, index)
-              .reduce<number>((memo, curr) => memo + curr.length, 0);
-            const lastCallKeyIndex = firstCallKeyIndex + returnData.length;
-
-            dispatch(
-              updateMulticallResults({
-                chainId,
-                results: outdatedCallKeys
-                  .slice(firstCallKeyIndex, lastCallKeyIndex)
-                  .reduce<{ [callKey: string]: string | null }>((memo, callKey, i) => {
-                    memo[callKey] = returnData[i] ?? null;
-                    return memo;
-                  }, {}),
-                blockNumber: fetchBlockNumber,
-              }),
-            );
-          })
-          .catch((error: any) => {
-            if (error instanceof CancelledError) {
-              console.debug('Cancelled fetch for blockNumber', latestBlockNumber);
-              return;
-            }
-            console.error('Failed to fetch multicall chunk', chunk, chainId, error);
-            dispatch(
-              errorFetchingMulticallResults({
-                calls: chunk,
-                chainId,
-                fetchingBlockNumber: latestBlockNumber,
-              }),
-            );
-          });
-
-        // Füge hier die setTimeout-Funktion ein
         setTimeout(() => {
-          // Code, der nach einer Verzögerung ausgeführt werden soll
-        }, BACKOFF_TIMEOUT); // BACKOFF_TIMEOUT ist die Zeit der Verzögerung in Millisekunden
+          promise
+            .then(({ results: returnData, blockNumber: fetchBlockNumber }) => {
+              cancellations.current = { cancellations: [], blockNumber: latestBlockNumber };
+
+              const firstCallKeyIndex = chunkedCalls
+                .slice(0, index)
+                .reduce<number>((memo, curr) => memo + curr.length, 0);
+              const lastCallKeyIndex = firstCallKeyIndex + returnData.length;
+
+              dispatch(
+                updateMulticallResults({
+                  chainId,
+                  results: outdatedCallKeys
+                    .slice(firstCallKeyIndex, lastCallKeyIndex)
+                    .reduce<{ [callKey: string]: string | null }>((memo, callKey, i) => {
+                      memo[callKey] = returnData[i] ?? null;
+                      return memo;
+                    }, {}),
+                  blockNumber: fetchBlockNumber,
+                }),
+              );
+            })
+            .catch((error: any) => {
+              if (error instanceof CancelledError) {
+                console.debug('Cancelled fetch for blockNumber', latestBlockNumber);
+                return;
+              }
+              console.error('Failed to fetch multicall chunk', chunk, chainId, error);
+              dispatch(
+                errorFetchingMulticallResults({
+                  calls: chunk,
+                  chainId,
+                  fetchingBlockNumber: latestBlockNumber,
+                }),
+              );
+            });
+        }, index * BACKOFF_TIMEOUT); // BACKOFF_TIMEOUT zwischen den Chunk-Aufrufen
 
         return cancel;
       }),
