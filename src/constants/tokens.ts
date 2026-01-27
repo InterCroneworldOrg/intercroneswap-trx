@@ -1,5 +1,5 @@
 import { ChainId, Token, WETH } from '@intercroneswap/v2-sdk';
-import { BACKEND_URL } from '.';
+// import { BACKEND_URL } from '.';
 
 export function getTokensFromDefaults(symbols: string): [Token, Token] | undefined {
   const symbolsSplit = symbols.split('-');
@@ -13,51 +13,67 @@ export function getTokensFromDefaults(symbols: string): [Token, Token] | undefin
 
 export let tokensFromApi: Token[] = [];
 
-const fetchBackendUrl = async () => {
-  // Simulate a network request delay
-  await new Promise((resolve) => setTimeout(resolve, 1000));
-  return BACKEND_URL;
-};
-
-const setBackendUrl = async () => {
-  url = await fetchBackendUrl();
-};
-
-// Initialize url
-let url = '';
-
-// Immediately invoke the setBackendUrl function
+const TOKENLIST_URL =
+  'https://raw.githubusercontent.com/InterCroneworldOrg/token-lists/e91b53da5b8d08e0b2b6fdccf93ece3b5abda6f1/intercroneswap_default.json';
 
 export const fetchTokens = async () => {
-  const response = await fetch(`${url}/tokens/all?chainId=11111`, {
-    method: 'GET',
-    mode: 'cors',
-  });
-  if (response.status == 200) {
-    const json = await response.json();
-    if (json.data?.length > tokensFromApi.length) {
-      tokensFromApi = json.data?.map((data: any) => {
-        const token = new Token(data.chain_id, data.address, data.decimals, data.symbol, data.name);
-        return token;
-      });
-    }
-  }
+  const response = await fetch(TOKENLIST_URL, { method: 'GET' });
+  if (!response.ok) return;
+
+  const json = await response.json();
+
+  const list = Array.isArray(json.tokens) ? json.tokens : [];
+
+  tokensFromApi = list
+    .filter((t: any) => Number(t.chainId) === 11111)
+    .map((t: any) => new Token(Number(t.chainId), t.address, Number(t.decimals), String(t.symbol).trim(), t.name));
 };
 
-let isFetchTokensInitialized = false; // Flag to track whether fetchTokens has been called
+// const fetchBackendUrl = async () => {
+//   // Simulate a network request delay
+//   await new Promise((resolve) => setTimeout(resolve, 1000));
+//   return BACKEND_URL;
+// };
 
-const initializeFetchTokens = async () => {
-  if (!isFetchTokensInitialized) {
-    await setBackendUrl();
-    await fetchTokens();
-    isFetchTokensInitialized = true;
-  }
-};
+// const setBackendUrl = async () => {
+//   url = await fetchBackendUrl();
+// };
 
-// Immediately invoke the initializeFetchTokens function
-(async () => {
-  await initializeFetchTokens();
-})();
+// // Initialize url
+// let url = '';
+
+// // Immediately invoke the setBackendUrl function
+
+// export const fetchTokens = async () => {
+//   const response = await fetch(`${url}/tokens/all?chainId=11111`, {
+//     method: 'GET',
+//     mode: 'cors',
+//   });
+//   if (response.status == 200) {
+//     const json = await response.json();
+//     if (json.data?.length > tokensFromApi.length) {
+//       tokensFromApi = json.data?.map((data: any) => {
+//         const token = new Token(data.chain_id, data.address, data.decimals, data.symbol, data.name);
+//         return token;
+//       });
+//     }
+//   }
+// };
+
+// let isFetchTokensInitialized = false; // Flag to track whether fetchTokens has been called
+
+// const initializeFetchTokens = async () => {
+//   if (!isFetchTokensInitialized) {
+//     await setBackendUrl();
+//     await fetchTokens();
+//     isFetchTokensInitialized = true;
+//   }
+// };
+
+// // Immediately invoke the initializeFetchTokens function
+// (async () => {
+//   await initializeFetchTokens();
+// })();
 
 export function getTokenFromDefaults(symbol: string): Token | undefined {
   let token: Token | undefined = symbol === 'TRX' ? WETH[ChainId.MAINNET] : DefaultTokensMap[symbol];
