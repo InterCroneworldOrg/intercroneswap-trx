@@ -1,4 +1,4 @@
-import createJavaTronProvider from '@intercroneswap/java-tron-provider';
+import createJavaTronProvider from './javaTronProviderCompat';
 
 import { InjectedTronConnector } from './injected-tron-connector';
 import { configureTronGridApiKey, optimizeTronProvider } from './rateLimitedProvider';

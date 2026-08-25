@@ -8,7 +8,7 @@ import CurrencyLogo from '../CurrencyLogo';
 import DoubleCurrencyLogo from '../DoubleLogo';
 import { AutoRow, RowBetween } from '../Row';
 import { TYPE } from '../../theme';
-import { ethAddress } from '@intercroneswap/java-tron-provider';
+import { ethAddress } from '../../connectors/javaTronProviderCompat';
 import { Input as NumericalInput } from '../NumericalInput';
 import { ReactComponent as DropDown } from '../../assets/images/dropdown.svg';
 

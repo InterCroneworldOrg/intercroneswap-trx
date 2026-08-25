@@ -22,7 +22,7 @@ import { useTokenComparator } from './sorting';
 import { PaddedColumn, SearchInput, Separator } from './styleds';
 import AutoSizer from 'react-virtualized-auto-sizer';
 import tronWeb from 'tronweb';
-import { ethAddress } from '@intercroneswap/java-tron-provider';
+import { ethAddress } from '../../connectors/javaTronProviderCompat';
 interface CurrencySearchProps {
   isOpen: boolean;
   onDismiss: () => void;

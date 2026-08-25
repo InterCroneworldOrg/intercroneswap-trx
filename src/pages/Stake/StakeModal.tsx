@@ -17,7 +17,7 @@ import { useTransactionAdder } from '../../state/transactions/hooks';
 import { Tabs } from '../../components/NavigationTabs';
 import { ExternalLink, TYPE } from '../../theme';
 import { MaxButton } from './styleds';
-import { ethAddress } from '@intercroneswap/java-tron-provider';
+import { ethAddress } from '../../connectors/javaTronProviderCompat';
 import { tryParseAmount } from '../../state/swap/hooks';
 import { unwrappedToken } from '../../utils/wrappedCurrency';
 import Loader from '../../components/Loader';

@@ -1,5 +1,5 @@
 import { TokenList } from '@intercroneswap/token-lists';
-import { ethAddress } from '@intercroneswap/java-tron-provider';
+import { ethAddress } from '../connectors/javaTronProviderCompat';
 import { PLZ } from '../constants/tokens';
 
 const coinTopFormats = ['png', 'jpeg', 'jpg'];

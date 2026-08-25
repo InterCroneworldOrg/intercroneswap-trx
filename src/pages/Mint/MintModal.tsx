@@ -13,7 +13,7 @@ import { TruncatedText } from '../../components/swap/styleds';
 import { ETHER, JSBI } from '@intercroneswap/v2-sdk';
 import CurrencyLogo from '../../components/CurrencyLogo';
 import { TYPE } from '../../theme';
-import { ethAddress } from '@intercroneswap/java-tron-provider';
+import { ethAddress } from '../../connectors/javaTronProviderCompat';
 import { useTransactionAdder } from '../../state/transactions/hooks';
 
 export interface MintModalProps {

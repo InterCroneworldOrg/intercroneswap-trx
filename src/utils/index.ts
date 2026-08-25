@@ -10,7 +10,7 @@ import { abi as ISwapEarningABI } from '../hooks/Earnings.json';
 import { ROUTER_ADDRESS } from '../constants';
 import { ChainId, JSBI, Percent, Token, CurrencyAmount, Currency, ETHER } from '@intercroneswap/v2-sdk';
 import { TokenAddressMap } from '../state/lists/hooks';
-import { ethAddress, remove0xPrefix } from '@intercroneswap/java-tron-provider';
+import { ethAddress, remove0xPrefix } from '../connectors/javaTronProviderCompat';
 import { getAddress } from 'ethers/lib/utils';
 
 // returns the checksummed address if the address is valid, otherwise returns false
