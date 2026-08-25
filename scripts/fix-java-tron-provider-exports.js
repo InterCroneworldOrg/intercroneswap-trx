@@ -15,14 +15,18 @@ const tronWebPackagePath = path.join(__dirname, '..', 'node_modules', 'tronweb',
 function fixedExports() {
   return {
     '.': {
-      browser: './commonjs/lib/index.web.js',
+      // The dedicated web entry omits helpers such as ethAddress which the
+      // interface imports. The complete CommonJS entry exports both the
+      // provider factory and address helpers. TronWeb itself is redirected to
+      // its browser bundle below, so the complete entry remains browser-safe.
+      browser: './commonjs/lib/index.js',
       node: {
         import: './src/index.node.js',
         require: './commonjs/lib/index.node.js',
       },
-      import: './src/index.web.js',
-      require: './commonjs/lib/index.web.js',
-      default: './commonjs/lib/index.web.js',
+      import: './src/index.js',
+      require: './commonjs/lib/index.js',
+      default: './commonjs/lib/index.js',
     },
     './package.json': './package.json',
   };
@@ -32,10 +36,11 @@ if (!fs.existsSync(providerPackagePath)) {
   console.warn('[postinstall] java-tron-provider is not installed; export fix skipped.');
 } else {
   const providerPackageJson = JSON.parse(fs.readFileSync(providerPackagePath, 'utf8'));
-  const providerAlreadyFixed = providerPackageJson.exports && providerPackageJson.exports['.'];
+  const expectedExports = fixedExports();
+  const providerAlreadyFixed = JSON.stringify(providerPackageJson.exports) === JSON.stringify(expectedExports);
 
   if (!providerAlreadyFixed) {
-    providerPackageJson.exports = fixedExports();
+    providerPackageJson.exports = expectedExports;
     fs.writeFileSync(providerPackagePath, `${JSON.stringify(providerPackageJson, null, 2)}\n`);
     console.log('[postinstall] Fixed @intercroneswap/java-tron-provider browser exports.');
   }
