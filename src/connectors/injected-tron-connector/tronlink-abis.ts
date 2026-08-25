@@ -1,16 +1,21 @@
 // all abis...
 import { V_FACTORY_ABI, V_EXCHANGE_ABI } from '../../constants/v';
 import ENS_ABI from '../../constants/abis/ens-registrar.json';
-import { abi as IntercroneswapV1Router02ABI } from '@intercroneswap/v2-periphery/build/IIswapV1Router02.json';
+import IntercroneswapV1Router02Artifact from '@intercroneswap/v2-periphery/build/IIswapV1Router02.json';
 
 import ENS_PUBLIC_RESOLVER_ABI from '../../constants/abis/ens-public-resolver.json';
 // import UNISOCKS_ABI from '../../constants/abis/unisocks.json'
 import WETH_ABI from '../../constants/abis/weth.json';
 import ERC20_ABI from '../../constants/abis/erc20.json';
 import { MULTICALL_ABI } from '../../constants/multicall';
-import { abi as ISwapV1PairABI } from '@intercroneswap/v2-periphery/build/IIswapV1Pair.json';
-import { abi as ISwapV2StakingRewards } from '@intercroneswap/v2-staking/build/IStakingRewards.json';
-import { abi as ISwapEarningAbi } from '../../hooks/Earnings.json';
+import ISwapV1PairArtifact from '@intercroneswap/v2-periphery/build/IIswapV1Pair.json';
+import ISwapV2StakingRewardsArtifact from '@intercroneswap/v2-staking/build/IStakingRewards.json';
+import ISwapEarningArtifact from '../../hooks/Earnings.json';
+
+const IntercroneswapV1Router02ABI = IntercroneswapV1Router02Artifact.abi;
+const ISwapV1PairABI = ISwapV1PairArtifact.abi;
+const ISwapV2StakingRewards = ISwapV2StakingRewardsArtifact.abi;
+const ISwapEarningAbi = ISwapEarningArtifact.abi;
 
 export const abis = [
   ...ERC20_ABI,

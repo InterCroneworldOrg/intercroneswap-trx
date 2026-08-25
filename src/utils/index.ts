@@ -3,15 +3,20 @@ import { Contract } from '@ethersproject/contracts';
 import { AddressZero } from '@ethersproject/constants';
 import { JsonRpcSigner, Web3Provider } from '@ethersproject/providers';
 import { BigNumber } from '@ethersproject/bignumber';
-import { abi as IntercroneswapV1Router02ABI } from '@intercroneswap/v2-periphery/build/IIswapV1Router02.json';
-import { abi as ISwapV2StakingABI } from '@intercroneswap/v2-staking/build/IStakingRewards.json';
-import { abi as ISwapV2ArbiABI } from '@intercroneswap/v2-abitragenft/build/AbiSwapICR.json';
-import { abi as ISwapEarningABI } from '../hooks/Earnings.json';
+import IntercroneswapV1Router02Artifact from '@intercroneswap/v2-periphery/build/IIswapV1Router02.json';
+import ISwapV2StakingArtifact from '@intercroneswap/v2-staking/build/IStakingRewards.json';
+import ISwapV2ArbiArtifact from '@intercroneswap/v2-abitragenft/build/AbiSwapICR.json';
+import ISwapEarningArtifact from '../hooks/Earnings.json';
 import { ROUTER_ADDRESS } from '../constants';
 import { ChainId, JSBI, Percent, Token, CurrencyAmount, Currency, ETHER } from '@intercroneswap/v2-sdk';
 import { TokenAddressMap } from '../state/lists/hooks';
 import { ethAddress, remove0xPrefix } from '../connectors/javaTronProviderCompat';
 import { getAddress } from 'ethers/lib/utils';
+
+const IntercroneswapV1Router02ABI = IntercroneswapV1Router02Artifact.abi;
+const ISwapV2StakingABI = ISwapV2StakingArtifact.abi;
+const ISwapV2ArbiABI = ISwapV2ArbiArtifact.abi;
+const ISwapEarningABI = ISwapEarningArtifact.abi;
 
 // returns the checksummed address if the address is valid, otherwise returns false
 export function isAddress(value: any): string | false {

@@ -1,5 +1,5 @@
 import { CurrencyAmount, JSBI, Pair, Token, TokenAmount, ZERO } from '@intercroneswap/v2-sdk';
-import { abi as ISwapV2StakingRewards } from '@intercroneswap/v2-staking/build/StakingRewards.json';
+import ISwapV2StakingRewardsArtifact from '@intercroneswap/v2-staking/build/StakingRewards.json';
 import { Interface } from 'ethers/lib/utils';
 import { useCallback, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
@@ -13,6 +13,8 @@ import { NEVER_RELOAD, useMultipleContractSingleData, useSingleCallResult } from
 import { tryParseAmount } from '../swap/hooks';
 import { addStakeAmounts, setAttemptingTxn, setTxHash, typeInput } from './actions';
 import { StakingRewardsInfo } from './constants';
+
+const ISwapV2StakingRewards = ISwapV2StakingRewardsArtifact.abi;
 
 const ISwapV2StakingRewardsInterface = new Interface(ISwapV2StakingRewards);
 

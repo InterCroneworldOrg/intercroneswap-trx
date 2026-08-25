@@ -1,8 +1,8 @@
 import { Contract } from '@ethersproject/contracts';
 import MERKLE_DISTRIBUTOR_ABI from '../constants/abis/merkle.json';
 import { ChainId, WETH } from '@intercroneswap/v2-sdk';
-import { abi as ISwapV1PairABI } from '@intercroneswap/v1-core/build/IISwapV1Pair.json';
-import { abi as ISwapV2StakingABI } from '@intercroneswap/v2-staking/build/IStakingRewards.json';
+import ISwapV1PairArtifact from '@intercroneswap/v1-core/build/IISwapV1Pair.json';
+import ISwapV2StakingArtifact from '@intercroneswap/v2-staking/build/IStakingRewards.json';
 import { useMemo } from 'react';
 import { MERKLE_DISTRIBUTOR_ADDRESS } from '../constants';
 import {
@@ -18,6 +18,9 @@ import { MULTICALL_ABI, MULTICALL_NETWORKS } from '../constants/multicall';
 import { V_EXCHANGE_ABI, V_FACTORY_ABI, V_FACTORY_ADDRESSES } from '../constants/v';
 import { getContract } from '../utils';
 import { useActiveWeb3React } from './index';
+
+const ISwapV1PairABI = ISwapV1PairArtifact.abi;
+const ISwapV2StakingABI = ISwapV2StakingArtifact.abi;
 
 // returns null on errors
 function useContract(address: string | undefined, ABI: any, withSignerIfPossible = true): Contract | null {
