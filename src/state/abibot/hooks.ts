@@ -4,14 +4,13 @@ import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, AppState } from '..';
 import { NEVER_RELOAD, useMultipleContractSingleData, useSingleCallResult } from '../multicall/hooks';
 import { setAttemptingTxn, setTxHash, typeInput } from './actions';
-import AbiSwapICRArtifact from '@intercroneswap/v2-abitragenft/build/AbiSwapICR.json';
 import { Interface } from 'ethers/lib/utils';
 import { ChainId, TokenAmount, WETH } from '@intercroneswap/v2-sdk';
 import { MintContractData } from '../../pages/Mint/types';
 import { getEarningContract } from '../../utils';
 import { EARNING_CONTRACT } from '../../constants';
 
-const AbiSwapICR = AbiSwapICRArtifact.abi;
+const AbiSwapICR = require('@intercroneswap/v2-abitragenft/build/AbiSwapICR.json').abi;
 
 const AbiSwapICRInterface = new Interface(AbiSwapICR);
 

@@ -1,5 +1,4 @@
 import { CurrencyAmount, JSBI, Pair, Token, TokenAmount, ZERO } from '@intercroneswap/v2-sdk';
-import ISwapV2StakingRewardsArtifact from '@intercroneswap/v2-staking/build/StakingRewards.json';
 import { Interface } from 'ethers/lib/utils';
 import { useCallback, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
@@ -14,7 +13,7 @@ import { tryParseAmount } from '../swap/hooks';
 import { addStakeAmounts, setAttemptingTxn, setTxHash, typeInput } from './actions';
 import { StakingRewardsInfo } from './constants';
 
-const ISwapV2StakingRewards = ISwapV2StakingRewardsArtifact.abi;
+const ISwapV2StakingRewards = require('@intercroneswap/v2-staking/build/StakingRewards.json').abi;
 
 const ISwapV2StakingRewardsInterface = new Interface(ISwapV2StakingRewards);
 
