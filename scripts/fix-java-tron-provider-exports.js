@@ -12,22 +12,43 @@ const providerPackagePath = path.join(
 
 const tronWebPackagePath = path.join(__dirname, '..', 'node_modules', 'tronweb', 'package.json');
 const sdkPackagePath = path.join(__dirname, '..', 'node_modules', '@intercroneswap', 'v2-sdk', 'package.json');
+const providerEventsApiPath = path.join(
+  __dirname,
+  '..',
+  'node_modules',
+  '@intercroneswap',
+  'java-tron-provider',
+  'src',
+  'methods',
+  'eth',
+  'getLogs',
+  'eventsApiGetLogs.js',
+);
+const providerConversionsPath = path.join(
+  __dirname,
+  '..',
+  'node_modules',
+  '@intercroneswap',
+  'java-tron-provider',
+  'src',
+  'tron-eth-conversions',
+  'index.js',
+);
 
 function fixedExports() {
   return {
     '.': {
-      // The dedicated web entry omits helpers such as ethAddress which the
-      // interface imports. The complete CommonJS entry exports both the
-      // provider factory and address helpers. TronWeb itself is redirected to
-      // its browser bundle below, so the complete entry remains browser-safe.
-      browser: './commonjs/lib/index.js',
+      // The package declares `type: module`, so its CommonJS .js files cannot
+      // safely execute in a browser bundle (`exports is not defined`). The full
+      // ESM entry includes the provider plus the address conversion helpers.
+      browser: './src/index.js',
       node: {
         import: './src/index.node.js',
         require: './commonjs/lib/index.node.js',
       },
       import: './src/index.js',
       require: './commonjs/lib/index.js',
-      default: './commonjs/lib/index.js',
+      default: './src/index.js',
     },
     './package.json': './package.json',
   };
@@ -44,6 +65,24 @@ if (!fs.existsSync(providerPackagePath)) {
     providerPackageJson.exports = expectedExports;
     fs.writeFileSync(providerPackagePath, `${JSON.stringify(providerPackageJson, null, 2)}\n`);
     console.log('[postinstall] Fixed @intercroneswap/java-tron-provider browser exports.');
+  }
+}
+
+if (fs.existsSync(providerEventsApiPath)) {
+  const eventsApiSource = fs.readFileSync(providerEventsApiPath, 'utf8');
+  const browserSource = eventsApiSource.replace('from "querystring"', 'from "querystring-es3"');
+  if (browserSource !== eventsApiSource) {
+    fs.writeFileSync(providerEventsApiPath, browserSource);
+    console.log('[postinstall] Selected the browser querystring implementation.');
+  }
+}
+
+if (fs.existsSync(providerConversionsPath)) {
+  const conversionsSource = fs.readFileSync(providerConversionsPath, 'utf8');
+  const validSource = conversionsSource.replace(/},\s*$/, '};\n');
+  if (validSource !== conversionsSource) {
+    fs.writeFileSync(providerConversionsPath, validSource);
+    console.log('[postinstall] Fixed invalid ESM syntax in the address helpers.');
   }
 }
 

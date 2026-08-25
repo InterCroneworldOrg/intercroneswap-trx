@@ -1,7 +1,3 @@
-/*
- * Force the published CommonJS entry. Its ESM entry imports named exports from
- * java-tron-provider in a way Webpack 5 cannot statically reconcile.
- */
-const tronLinkProviderModule = require('@intercroneswap/tronlink-provider') as any;
+import createTronLinkProvider from '@intercroneswap/tronlink-provider';
 
-export default tronLinkProviderModule.default ?? tronLinkProviderModule;
+export default createTronLinkProvider;
