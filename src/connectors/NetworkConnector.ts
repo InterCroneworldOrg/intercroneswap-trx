@@ -1,14 +1,16 @@
 import createJavaTronProvider from '@intercroneswap/java-tron-provider';
 
 import { InjectedTronConnector } from './injected-tron-connector';
+import { configureTronGridApiKey, optimizeTronProvider } from './rateLimitedProvider';
 
 export class NetworkConnector extends InjectedTronConnector {
   constructor(kwargs: any) {
     super(kwargs);
-    this.provider = createJavaTronProvider({
+    configureTronGridApiKey();
+    this.provider = optimizeTronProvider(createJavaTronProvider({
       network: process.env.REACT_APP_TRON_NETWORK,
       tronApiUrl: process.env.REACT_APP_NETWORK_URL,
-    });
+    }));
   }
 
   async requestProvider(...args: any[]) {

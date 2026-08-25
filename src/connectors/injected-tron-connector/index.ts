@@ -3,6 +3,7 @@ import Web3 from 'web3';
 import { AbstractConnectorArguments, ConnectorUpdate } from '@web3-react/types';
 import { AbstractConnector } from '@web3-react/abstract-connector';
 import { abis } from './tronlink-abis';
+import { configureTronGridApiKey, optimizeTronProvider } from '../rateLimitedProvider';
 // import warning from 'tiny-warning'
 
 export class UserRejectedRequestError extends Error {
@@ -39,9 +40,8 @@ export class InjectedTronConnector extends AbstractConnector {
       });
     };
     const signs: any = {};
-    const web3 = new Web3(
-      new Web3.providers.WebsocketProvider('wss://mainnet.infura.io/ws/v3/7f14d2eb070c41029d687df66b286a09'),
-    );
+    // ABI encoding is local and does not need an Ethereum WebSocket connection.
+    const web3 = new Web3();
     abis.map((fn: any) => {
       try {
         const sign = web3.eth.abi.encodeFunctionSignature({
@@ -55,12 +55,13 @@ export class InjectedTronConnector extends AbstractConnector {
       }
     });
     // TODO(tron): should auto-use same network as one selected in tronlink!
-    this.provider = createTronLinkProvider({
+    configureTronGridApiKey();
+    this.provider = optimizeTronProvider(createTronLinkProvider({
       network: process.env.REACT_APP_TRON_NETWORK,
       tronApiUrl: process.env.REACT_APP_NETWORK_URL,
       functionSignatures: abis,
       signs,
-    });
+    }));
     /*
     this.handleNetworkChanged = this.handleNetworkChanged.bind(this)
     this.handleChainChanged = this.handleChainChanged.bind(this)

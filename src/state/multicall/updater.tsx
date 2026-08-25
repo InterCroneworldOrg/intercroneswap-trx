@@ -17,8 +17,7 @@ import {
 } from './actions';
 
 // chunk calls so we do not exceed the gas limit
-const CALL_CHUNK_SIZE = 25;
-const BACKOFF_TIMEOUT = 5000;
+const CALL_CHUNK_SIZE = 100;
 
 /**
  * Fetches a chunk of calls, enforcing a minimum block number constraint
@@ -202,11 +201,6 @@ export default function Updater(): null {
               }),
             );
           });
-
-        // Füge hier die setTimeout-Funktion ein
-        setTimeout(() => {
-          // Code, der nach einer Verzögerung ausgeführt werden soll
-        }, BACKOFF_TIMEOUT); // BACKOFF_TIMEOUT ist die Zeit der Verzögerung in Millisekunden
 
         return cancel;
       }),
