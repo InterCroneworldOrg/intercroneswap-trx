@@ -2,7 +2,6 @@ import { ChainId, JSBI, Percent, Token, WETH } from '@intercroneswap/v2-sdk';
 import { AbstractConnector } from '@web3-react/abstract-connector';
 
 import { injected } from '../connectors';
-import { REWARDS_DURATION_DAYS_180 } from '../state/stake/constants';
 import { BTC, BTT, ETH, ICR, ECO, MEOX, PLZ, USDC, USDD, USDJ, USDT, WIN, COME } from './tokens';
 
 export const ROUTER_ADDRESSES: { [chainId: number]: string } = {
@@ -24,8 +23,6 @@ type ChainTokenList = {
   readonly [chainId in ChainId]: Token[];
 };
 
-// Staking Yearly Rate
-export const YEARLY_RATE = JSBI.divide(JSBI.BigInt(365), JSBI.BigInt(REWARDS_DURATION_DAYS_180));
 // Block time here is slightly higher (~1s) than average in order to avoid ongoing proposals past the displayed time
 export const AVERAGE_BLOCK_TIME_IN_SECS = 3;
 export const PROPOSAL_LENGTH_IN_BLOCKS = 40_320;
@@ -204,6 +201,5 @@ export const BETTER_TRADE_LESS_HOPS_THRESHOLD = new Percent(JSBI.BigInt(50), BIP
 export const BACKEND_URL = 'https://api.intercroneswap.com';
 // export const BACKEND_URL = 'http://localhost:8080';
 
-export const EARNING_CONTRACT = '0x01c49a17c2470ae3bd85412811f3dfeadde174a0';
 export const ACTUAL_LAUCH_TOKEN: Token = PLZ;
 export const LAUNCH_START_TIME: Date = new Date(1669914000000);

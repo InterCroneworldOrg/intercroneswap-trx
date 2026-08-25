@@ -79,26 +79,11 @@ const Footer = () => {
                   Liquidity
                 </Link>
               </li>
-              <li>
-                <Link to="/stake" className={`${Style.link} nav-link`}>
-                  Staking
-                </Link>
-              </li>
               {/* <li>
               <Link to="/dashboard" className={`${Style.link} nav-link`}>
                 Dashboard
               </Link>
             </li> */}
-              <li>
-                <Link to="/nft" className={`${Style.link} nav-link`}>
-                  NFT
-                </Link>
-              </li>
-              <li>
-                <Link to="/markets" className={`${Style.link} nav-link`}>
-                  Market
-                </Link>
-              </li>
             </ul>
           </Col>
           <Col md={3}>

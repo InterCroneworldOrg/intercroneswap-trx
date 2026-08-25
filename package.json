@@ -8,13 +8,9 @@
   },
   "devDependencies": {
     "@ethersproject/experimental": "^5.0.1",
-    "@babel/plugin-proposal-private-property-in-object": "^7.21.11",
+    "@babel/plugin-proposal-private-property-in-object": "npm:@babel/plugin-transform-private-property-in-object@^7.24.7",
     "@intercroneswap/token-lists": "^0.0.5",
-    "@intercroneswap/v1-core": "^0.0.6",
-    "@intercroneswap/v2-abitragenft": "^0.0.1",
-    "@intercroneswap/v2-periphery": "0.1.2-trx",
     "@intercroneswap/v2-sdk": "1.0.3-trx",
-    "@intercroneswap/v2-staking": "^0.0.2",
     "@popperjs/core": "^2.4.4",
     "@reach/dialog": "^0.16.0",
     "@reach/portal": "^0.16.0",
@@ -95,7 +91,7 @@
   "scripts": {
     "postinstall": "node scripts/fix-java-tron-provider-exports.js",
     "start": "cross-env BROWSERSLIST_IGNORE_OLD_DATA=true react-scripts start",
-    "build": "cross-env BROWSERSLIST_IGNORE_OLD_DATA=true react-scripts build",
+    "build": "cross-env BROWSERSLIST_IGNORE_OLD_DATA=true GENERATE_SOURCEMAP=false react-scripts build",
     "test": "react-scripts test --env=jsdom",
     "eject": "react-scripts eject",
     "integration-test": "start-server-and-test 'serve build -l 3000' http://localhost:3000 'cypress run'"
@@ -123,7 +119,7 @@
     "@intercroneswap/java-tron-provider": "^0.0.12",
     "@intercroneswap/tronlink-provider": "^0.0.4",
     "lodash": "^4.17.21",
-    "node-sass": "^7.0.0",
+    "sass": "^1.77.8",
     "react-scripts": "^5.0.1"
   }
 }

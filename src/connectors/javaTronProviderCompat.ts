@@ -11,4 +11,3 @@ export const ethAddress = providerModule.ethAddress ?? providerModule.default?.e
 export const remove0xPrefix = providerModule.remove0xPrefix ?? providerModule.default?.remove0xPrefix;
 
 export default createJavaTronProvider;
-

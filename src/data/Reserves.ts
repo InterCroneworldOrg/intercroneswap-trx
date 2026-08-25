@@ -1,11 +1,11 @@
 import { TokenAmount, Pair, Currency } from '@intercroneswap/v2-sdk';
 import { useMemo, useState } from 'react';
+import ISwapV1PairABI from '../constants/abis/iswap-pair.json';
 import { Interface } from '@ethersproject/abi';
 import { useActiveWeb3React } from '../hooks';
 
 import { useMultipleContractSingleData } from '../state/multicall/hooks';
 import { wrappedCurrency } from '../utils/wrappedCurrency';
-const ISwapV1PairABI = require('@intercroneswap/v1-core/build/IISwapV1Pair.json').abi;
 const PAIR_INTERFACE = new Interface(ISwapV1PairABI);
 
 export enum PairState {

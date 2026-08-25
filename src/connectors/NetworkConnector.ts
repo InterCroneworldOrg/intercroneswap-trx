@@ -7,10 +7,12 @@ export class NetworkConnector extends InjectedTronConnector {
   constructor(kwargs: any) {
     super(kwargs);
     configureTronGridApiKey();
-    this.provider = optimizeTronProvider(createJavaTronProvider({
-      network: process.env.REACT_APP_TRON_NETWORK,
-      tronApiUrl: process.env.REACT_APP_NETWORK_URL,
-    }));
+    this.provider = optimizeTronProvider(
+      createJavaTronProvider({
+        network: process.env.REACT_APP_TRON_NETWORK,
+        tronApiUrl: process.env.REACT_APP_NETWORK_URL,
+      }),
+    );
   }
 
   async requestProvider(...args: any[]) {

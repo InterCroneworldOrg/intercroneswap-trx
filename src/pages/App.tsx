@@ -16,20 +16,14 @@ import {
 } from './AddLiquidity/redirects';
 // import { VoteComingSoon } from './Vote/vote';
 import Pool from './Pool';
-import Stake from './Stake';
 import PoolFinder from './PoolFinder';
 import RemoveLiquidity from './RemoveLiquidity';
 import { RedirectOldRemoveLiquidityPathStructure } from './RemoveLiquidity/redirects';
 import Swap from './Swap';
-import Sample from './Sample';
-import NFT from './NFT';
-import Mint from './Mint';
 import NotFound from './404';
 import { RedirectPathToSwapOnly, RedirectToSwap } from './Swap/redirects';
-import { RedirectToReferal } from './Stake/redirects';
 
 import { isMobile } from '../theme';
-import Markets from './Markets';
 
 const AppWrapper = styled.div`
   display: flex;
@@ -118,22 +112,10 @@ export default function App() {
             <Switch>
               <Route exact strict path="/" component={Swap} />
               <Route exact strict path="/swap" component={Swap} />
-              <Route exact strict path="/nft" component={NFT} />
-              <Route exact strict path="/mint" component={Mint} />
-              <Route exact strict path="/audit" component={Sample} />
-              <Route exact strict path="/white-paper" component={Sample} />
-              <Route exact strict path="/faq" component={Sample} />
-              <Route exact strict path="/roadmap" component={Sample} />
-              <Route exact strict path="/travel-guide" component={Sample} />
-
               <Route exact strict path="/swap/:outputCurrency" component={RedirectToSwap} />
               <Route exact strict path="/send" component={RedirectPathToSwapOnly} />
               <Route exact strict path="/find" component={PoolFinder} />
               <Route exact strict path="/pool" component={Pool} />
-              <Route exact strict path="/stake" component={Stake} />
-              <Route exact strict path="/stake/:referal" component={RedirectToReferal} />
-              <Route exact strict path="/markets" component={Markets} />
-              <Route exact strict path="/markets/:page" component={Markets} />
               <Route exact strict path="/create" component={RedirectToAddLiquidity} />
               <Route exact path="/add" component={AddLiquidity} />
               <Route exact path="/add/:currencyIdA" component={RedirectOldAddLiquidityPathStructure} />

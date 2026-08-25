@@ -7,10 +7,8 @@ import ENS_PUBLIC_RESOLVER_ABI from '../../constants/abis/ens-public-resolver.js
 import WETH_ABI from '../../constants/abis/weth.json';
 import ERC20_ABI from '../../constants/abis/erc20.json';
 import { MULTICALL_ABI } from '../../constants/multicall';
-const IntercroneswapV1Router02ABI = require('@intercroneswap/v2-periphery/build/IIswapV1Router02.json').abi;
-const ISwapV1PairABI = require('@intercroneswap/v2-periphery/build/IIswapV1Pair.json').abi;
-const ISwapV2StakingRewards = require('@intercroneswap/v2-staking/build/IStakingRewards.json').abi;
-const ISwapEarningAbi = require('../../hooks/Earnings.json').abi;
+import IntercroneswapV1Router02ABI from '../../constants/abis/iswap-router.json';
+import ISwapV1PairABI from '../../constants/abis/iswap-pair.json';
 
 export const abis = [
   ...ERC20_ABI,
@@ -24,8 +22,6 @@ export const abis = [
   ...WETH_ABI,
   ...MULTICALL_ABI,
   ...ISwapV1PairABI,
-  ...ISwapV2StakingRewards,
-  ...ISwapEarningAbi,
   {
     constant: true,
     inputs: [

@@ -1,4 +1,4 @@
-import createTronLinkProvider from '@intercroneswap/tronlink-provider';
+import createTronLinkProvider from '../tronlinkProviderCompat';
 import Web3 from 'web3';
 import { AbstractConnectorArguments, ConnectorUpdate } from '@web3-react/types';
 import { AbstractConnector } from '@web3-react/abstract-connector';
@@ -56,12 +56,14 @@ export class InjectedTronConnector extends AbstractConnector {
     });
     // TODO(tron): should auto-use same network as one selected in tronlink!
     configureTronGridApiKey();
-    this.provider = optimizeTronProvider(createTronLinkProvider({
-      network: process.env.REACT_APP_TRON_NETWORK,
-      tronApiUrl: process.env.REACT_APP_NETWORK_URL,
-      functionSignatures: abis,
-      signs,
-    }));
+    this.provider = optimizeTronProvider(
+      createTronLinkProvider({
+        network: process.env.REACT_APP_TRON_NETWORK,
+        tronApiUrl: process.env.REACT_APP_NETWORK_URL,
+        functionSignatures: abis,
+        signs,
+      }),
+    );
     /*
     this.handleNetworkChanged = this.handleNetworkChanged.bind(this)
     this.handleChainChanged = this.handleChainChanged.bind(this)

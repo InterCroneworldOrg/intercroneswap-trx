@@ -3,18 +3,12 @@ import { Contract } from '@ethersproject/contracts';
 import { AddressZero } from '@ethersproject/constants';
 import { JsonRpcSigner, Web3Provider } from '@ethersproject/providers';
 import { BigNumber } from '@ethersproject/bignumber';
+import IntercroneswapV1Router02ABI from '../constants/abis/iswap-router.json';
 import { ROUTER_ADDRESS } from '../constants';
 import { ChainId, JSBI, Percent, Token, CurrencyAmount, Currency, ETHER } from '@intercroneswap/v2-sdk';
 import { TokenAddressMap } from '../state/lists/hooks';
 import { ethAddress, remove0xPrefix } from '../connectors/javaTronProviderCompat';
 import { getAddress } from 'ethers/lib/utils';
-
-// These legacy Truffle artifacts expose `abi` through CommonJS. Using require here
-// prevents Webpack 5 from incorrectly treating it as a named JSON export.
-const IntercroneswapV1Router02ABI = require('@intercroneswap/v2-periphery/build/IIswapV1Router02.json').abi;
-const ISwapV2StakingABI = require('@intercroneswap/v2-staking/build/IStakingRewards.json').abi;
-const ISwapV2ArbiABI = require('@intercroneswap/v2-abitragenft/build/AbiSwapICR.json').abi;
-const ISwapEarningABI = require('../hooks/Earnings.json').abi;
 
 // returns the checksummed address if the address is valid, otherwise returns false
 export function isAddress(value: any): string | false {
@@ -115,18 +109,6 @@ export function getContract(address: string, ABI: any, library: Web3Provider, ac
 // account is optional
 export function getRouterContract(_: number, library: any, account?: string): Contract {
   return getContract(ROUTER_ADDRESS, IntercroneswapV1Router02ABI, library, account);
-}
-
-export function getStakingContract(_: number, address: string, library: any, account?: string): Contract {
-  return getContract(address, ISwapV2StakingABI, library, account);
-}
-
-export function getEarningContract(_: number, address: string, library: any, account?: string): Contract {
-  return getContract(address, ISwapEarningABI, library, account);
-}
-
-export function getArbiMintContract(_: number, address: string, library: any, account?: string): Contract {
-  return getContract(address, ISwapV2ArbiABI, library, account);
 }
 
 export function escapeRegExp(string: string): string {

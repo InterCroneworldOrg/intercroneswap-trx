@@ -60,7 +60,7 @@ export function optimizeTronProvider(provider: any): any {
     const cached = key ? cache.get(key) : undefined;
 
     if (cached && cached.expiresAt > Date.now()) return cached.value;
-    if (cached) cache.delete(key!);
+    if (cached && key) cache.delete(key);
 
     const value = waitForRequestSlot().then(() => originalRequest(...args));
     if (key) {
@@ -78,4 +78,3 @@ export function configureTronGridApiKey(): void {
   const apiKey = process.env.REACT_APP_TRONGRID_API_KEY;
   if (apiKey) axios.defaults.headers.common['TRON-PRO-API-KEY'] = apiKey;
 }
-

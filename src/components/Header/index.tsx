@@ -143,15 +143,6 @@ export default function Header() {
         <Link to="/pool" className={`${Style.link} nav-link`}>
           Liquidity
         </Link>
-        <Link to="/stake" className={`${Style.link} nav-link`}>
-          Staking
-        </Link>
-        <Link to="/markets" className={`${Style.link} nav-link`}>
-          Markets
-        </Link>
-        <Link to="/nft" className={`${Style.link} nav-link`}>
-          NFT
-        </Link>
       </>
     );
   }, []);

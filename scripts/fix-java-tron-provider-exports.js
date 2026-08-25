@@ -11,6 +11,7 @@ const providerPackagePath = path.join(
 );
 
 const tronWebPackagePath = path.join(__dirname, '..', 'node_modules', 'tronweb', 'package.json');
+const sdkPackagePath = path.join(__dirname, '..', 'node_modules', '@intercroneswap', 'v2-sdk', 'package.json');
 
 function fixedExports() {
   return {
@@ -58,5 +59,20 @@ if (!fs.existsSync(tronWebPackagePath)) {
     tronWebPackageJson.browser = './dist/TronWeb.js';
     fs.writeFileSync(tronWebPackagePath, `${JSON.stringify(tronWebPackageJson, null, 2)}\n`);
     console.log('[postinstall] Selected the TronWeb browser bundle for Webpack.');
+  }
+}
+
+if (!fs.existsSync(sdkPackagePath)) {
+  console.warn('[postinstall] v2-sdk is not installed; CommonJS entry fix skipped.');
+} else {
+  const sdkPackageJson = JSON.parse(fs.readFileSync(sdkPackagePath, 'utf8'));
+
+  // The published ESM bundle imports `abi` as a named export from legacy
+  // Truffle JSON artifacts, which Webpack 5 rejects. The SDK's CommonJS build
+  // contains the same implementation with those artifacts already bundled.
+  if (sdkPackageJson.module !== './dist/index.js') {
+    sdkPackageJson.module = './dist/index.js';
+    fs.writeFileSync(sdkPackagePath, `${JSON.stringify(sdkPackageJson, null, 2)}\n`);
+    console.log('[postinstall] Selected the v2-sdk CommonJS bundle for Webpack 5.');
   }
 }
