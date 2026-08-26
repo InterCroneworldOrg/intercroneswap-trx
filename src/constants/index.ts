@@ -2,7 +2,7 @@ import { ChainId, JSBI, Percent, Token, WETH } from '@intercroneswap/v2-sdk';
 import { AbstractConnector } from '@web3-react/abstract-connector';
 
 import { injected } from '../connectors';
-import { BTC, BTT, ETH, ICR, ECO, MEOX, USDC, USDD, USDJ, USDT, WIN, COME } from './tokens';
+import { ICR, USDT } from './tokens';
 import { getTronContracts, tronAddressToEvmAddress } from '../tron-config';
 
 const chainId: number = parseInt(process.env.REACT_APP_CHAIN_ID ?? '11111');
@@ -23,7 +23,7 @@ const WETH_ONLY: ChainTokenList = {
 // used to construct intermediary pairs for trading
 export const BASES_TO_CHECK_TRADES_AGAINST: ChainTokenList = {
   ...WETH_ONLY,
-  [ChainId.MAINNET]: [...WETH_ONLY[ChainId.MAINNET], ICR, USDT, USDC, USDJ, USDD, BTC, ETH, BTT, MEOX, ECO, WIN, COME],
+  [ChainId.MAINNET]: [...WETH_ONLY[ChainId.MAINNET], ICR, USDT],
 };
 
 /**

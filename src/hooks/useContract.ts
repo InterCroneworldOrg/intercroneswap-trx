@@ -14,6 +14,9 @@ import WETH_ABI from '../constants/abis/weth.json';
 import { MULTICALL_ABI, MULTICALL_NETWORKS } from '../constants/multicall';
 import { getContract } from '../utils';
 import { useActiveWeb3React } from './index';
+import { getTronContracts, tronAddressToEvmAddress } from '../tron-config';
+
+const FACTORY_ABI = ['function getPair(address tokenA, address tokenB) view returns (address pair)'];
 
 // returns null on errors
 function useContract(address: string | undefined, ABI: any, withSignerIfPossible = true): Contract | null {
@@ -76,6 +79,12 @@ export function useBytes32TokenContract(tokenAddress?: string, withSignerIfPossi
 
 export function usePairContract(pairAddress?: string, withSignerIfPossible?: boolean): Contract | null {
   return useContract(pairAddress, ISwapV1PairABI, withSignerIfPossible);
+}
+
+export function useFactoryContract(): Contract | null {
+  const { chainId } = useActiveWeb3React();
+  const factoryAddress = chainId ? getTronContracts(chainId).factory : '';
+  return useContract(factoryAddress ? tronAddressToEvmAddress(factoryAddress) : undefined, FACTORY_ABI, false);
 }
 
 export function useMulticallContract(): Contract | null {
