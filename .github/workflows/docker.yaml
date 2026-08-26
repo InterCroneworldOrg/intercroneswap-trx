@@ -42,9 +42,10 @@ jobs:
             REACT_APP_CHAIN_ID=11111
             REACT_APP_NETWORK_URL=https://api.trongrid.io
             REACT_APP_TRON_NETWORK=mainnet
-            REACT_APP_TRONGRID_API_KEY=${{ secrets.TRONGRID_API_KEY }}
             REACT_APP_RPC_POLLING_INTERVAL_MS=30000
             REACT_APP_RPC_CACHE_TTL_MS=12000
             REACT_APP_RPC_MIN_INTERVAL_MS=120
+          secrets: |
+            trongrid_api_key=${{ secrets.TRONGRID_API_KEY }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
