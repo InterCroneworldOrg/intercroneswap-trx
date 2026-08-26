@@ -1,5 +1,4 @@
 // import { splitSignature } from '@ethersproject/bytes';
-import { Contract } from '@ethersproject/contracts';
 import { TransactionResponse } from '@ethersproject/providers';
 import { Currency, currencyEquals, ETHER, Percent, WETH } from '@intercroneswap/v2-sdk';
 import { useCallback, useContext, useMemo, useState } from 'react';
@@ -23,8 +22,6 @@ import CurrencyLogo from '../../components/CurrencyLogo';
 import { ROUTER_ADDRESS } from '../../constants';
 import { useActiveWeb3React } from '../../hooks';
 import { useCurrency } from '../../hooks/Tokens';
-import { usePairContract } from '../../hooks/useContract';
-import useIsArgentWallet from '../../hooks/useIsArgentWallet';
 import useTransactionDeadline from '../../hooks/useTransactionDeadline';
 
 import { useTransactionAdder } from '../../state/transactions/hooks';
@@ -101,83 +98,16 @@ export default function RemoveLiquidity({
 
   const atMaxAmount = parsedAmounts[Field.LIQUIDITY_PERCENT]?.equalTo(new Percent('1'));
 
-  // pair contract
-  const pairContract: Contract | null = usePairContract(pair?.liquidityToken?.address);
-
   // allowance handling
   const [signatureData, setSignatureData] = useState<{ v: number; r: string; s: string; deadline: number } | null>(
     null,
   );
   const [approval, approveCallback] = useApproveCallback(parsedAmounts[Field.LIQUIDITY], ROUTER_ADDRESS);
 
-  const isArgentWallet = useIsArgentWallet();
-
   async function onAttemptToApprove() {
-    if (!pairContract || !pair || !library || !deadline) throw new Error('missing dependencies');
     const liquidityAmount = parsedAmounts[Field.LIQUIDITY];
     if (!liquidityAmount) throw new Error('missing liquidity amount');
-
-    if (isArgentWallet) {
-      return approveCallback();
-    }
-
-    // try to gather a signature for permission
-    const nonce = await pairContract.nonces(account);
-
-    const EIP712Domain = [
-      { name: 'name', type: 'string' },
-      { name: 'version', type: 'string' },
-      { name: 'chainId', type: 'uint256' },
-      { name: 'verifyingContract', type: 'address' },
-    ];
-    const domain = {
-      name: 'ISwap',
-      version: '1',
-      chainId: chainId,
-      verifyingContract: pair.liquidityToken.address,
-    };
-    const Permit = [
-      { name: 'owner', type: 'address' },
-      { name: 'spender', type: 'address' },
-      { name: 'value', type: 'uint256' },
-      { name: 'nonce', type: 'uint256' },
-      { name: 'deadline', type: 'uint256' },
-    ];
-    const message = {
-      owner: account,
-      spender: ROUTER_ADDRESS,
-      value: liquidityAmount.raw.toString(),
-      nonce: nonce.toHexString(),
-      deadline: deadline.toNumber(),
-    };
-    const data = JSON.stringify({
-      types: {
-        EIP712Domain,
-        Permit,
-      },
-      domain,
-      primaryType: 'Permit',
-      message,
-    });
-    () => data;
-
-    // library
-    //   .send('eth_signTypedData_v4', [account, data])
-    //   .then(splitSignature)
-    //   .then((signature) => {
-    //     setSignatureData({
-    //       v: signature.v,
-    //       r: signature.r,
-    //       s: signature.s,
-    //       deadline: deadline.toNumber(),
-    //     });
-    //   })
-    //   .catch((error) => {
-    // for all errors other than 4001 (EIP-1193 user rejected request), fall back to manual approve
-    // if (error?.code !== 4001) {
-    approveCallback();
-    //   }
-    // });
+    return approveCallback();
   }
 
   // wrapped onUserInput to clear signatures

@@ -1,9 +1,7 @@
-# node_modules
-# build
-# .git
-# .github
-# .env
-# .env.*
-# npm-debug.log*
-# Dockerfile*
-# README.md
+node_modules
+build
+.git
+.env
+.env.*
+npm-debug.log*
+README.md

@@ -177,7 +177,7 @@ export function useSingleContractMultipleData(
     () =>
       contract && fragment && callInputs && callInputs.length > 0
         ? callInputs.map<Call | undefined>((inputs) =>
-            isValidMethodArgs(inputs)
+            inputs !== undefined && isValidMethodArgs(inputs) && inputs.length === fragment.inputs.length
               ? {
                   address: contract.address,
                   callData: contract.interface.encodeFunctionData(fragment, inputs),

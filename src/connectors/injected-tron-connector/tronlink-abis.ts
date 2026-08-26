@@ -1,7 +1,5 @@
 // all abis...
-import ENS_ABI from '../../constants/abis/ens-registrar.json';
 
-import ENS_PUBLIC_RESOLVER_ABI from '../../constants/abis/ens-public-resolver.json';
 // import UNISOCKS_ABI from '../../constants/abis/unisocks.json'
 import WETH_ABI from '../../constants/abis/weth.json';
 import ERC20_ABI from '../../constants/abis/erc20.json';
@@ -14,8 +12,6 @@ export const abis = [
   ...ERC20_ABI,
   ...IntercroneswapV1Router02ABI,
   // ...IUniswapV2PairABI,
-  ...ENS_ABI,
-  ...ENS_PUBLIC_RESOLVER_ABI,
   // ...UNISOCKS_ABI,
   ...WETH_ABI,
   ...MULTICALL_ABI,

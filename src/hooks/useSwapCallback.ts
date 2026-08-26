@@ -3,11 +3,10 @@ import { JSBI, Percent, Router, SwapParameters, Trade, TradeType } from '@interc
 import { useMemo } from 'react';
 import { BIPS_BASE, INITIAL_ALLOWED_SLIPPAGE } from '../constants';
 import { useTransactionAdder } from '../state/transactions/hooks';
-import { getRouterContract, isAddress, shortenAddress } from '../utils';
+import { getRouterContract } from '../utils';
 import isZero from '../utils/isZero';
 import { useActiveWeb3React } from './index';
 import useTransactionDeadline from './useTransactionDeadline';
-import useENS from './useENS';
 import { DEFAULT_FEE_LIMIT } from '../tron-config';
 export enum SwapCallbackState {
   INVALID,
@@ -36,17 +35,14 @@ interface SwapCall {
  * Returns the swap calls that can be used to make the trade
  * @param trade trade to execute
  * @param allowedSlippage user allowed slippage
- * @param recipientAddressOrName
  */
 function useSwapCallArguments(
   trade: Trade | undefined, // trade to execute, required
   allowedSlippage: number = INITIAL_ALLOWED_SLIPPAGE, // in bips
-  recipientAddressOrName: string | null, // the ENS name or address of the recipient of the trade, or null if swap should be returned to sender
 ): SwapCall[] {
   const { account, chainId, library } = useActiveWeb3React();
 
-  const { address: recipientAddress } = useENS(recipientAddressOrName);
-  const recipient = recipientAddressOrName === null ? account : recipientAddress;
+  const recipient = account;
   const deadline = useTransactionDeadline();
 
   return useMemo(() => {
@@ -87,28 +83,20 @@ function useSwapCallArguments(
 export function useSwapCallback(
   trade: Trade | undefined, // trade to execute, required
   allowedSlippage: number = INITIAL_ALLOWED_SLIPPAGE, // in bips
-  recipientAddressOrName: string | null, // the ENS name or address of the recipient of the trade, or null if swap should be returned to sender
 ): { state: SwapCallbackState; callback: null | (() => Promise<string>); error: string | null } {
   const { account, chainId, library } = useActiveWeb3React();
 
-  const swapCalls = useSwapCallArguments(trade, allowedSlippage, recipientAddressOrName);
+  const swapCalls = useSwapCallArguments(trade, allowedSlippage);
 
   const addTransaction = useTransactionAdder();
 
-  const { address: recipientAddress } = useENS(recipientAddressOrName);
-  const recipient = recipientAddressOrName === null ? account : recipientAddress;
+  const recipient = account;
 
   return useMemo(() => {
     if (!trade || !library || !account || !chainId) {
       return { state: SwapCallbackState.INVALID, callback: null, error: 'Missing dependencies' };
     }
-    if (!recipient) {
-      if (recipientAddressOrName !== null) {
-        return { state: SwapCallbackState.INVALID, callback: null, error: 'Invalid recipient' };
-      } else {
-        return { state: SwapCallbackState.LOADING, callback: null, error: null };
-      }
-    }
+    if (!recipient) return { state: SwapCallbackState.LOADING, callback: null, error: null };
 
     return {
       state: SwapCallbackState.VALID,
@@ -191,17 +179,8 @@ export function useSwapCallback(
             const outputAmount = trade.outputAmount.toSignificant(3);
 
             const base = `Swap ${inputAmount} ${inputSymbol} for ${outputAmount} ${outputSymbol}`;
-            const withRecipient =
-              recipient === account
-                ? base
-                : `${base} to ${
-                    recipientAddressOrName && isAddress(recipientAddressOrName)
-                      ? shortenAddress(recipientAddressOrName)
-                      : recipientAddressOrName
-                  }`;
-
             addTransaction(response, {
-              summary: withRecipient,
+              summary: base,
             });
 
             return response.hash;
@@ -219,5 +198,5 @@ export function useSwapCallback(
       },
       error: null,
     };
-  }, [trade, library, account, chainId, recipient, recipientAddressOrName, swapCalls, addTransaction]);
+  }, [trade, library, account, chainId, recipient, swapCalls, addTransaction]);
 }
