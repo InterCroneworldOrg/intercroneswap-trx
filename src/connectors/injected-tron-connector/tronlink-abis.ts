@@ -7,6 +7,7 @@ import ENS_PUBLIC_RESOLVER_ABI from '../../constants/abis/ens-public-resolver.js
 import WETH_ABI from '../../constants/abis/weth.json';
 import ERC20_ABI from '../../constants/abis/erc20.json';
 import { MULTICALL_ABI } from '../../constants/multicall';
+import Web3 from 'web3';
 import IntercroneswapV1Router02ABI from '../../constants/abis/iswap-router.json';
 import ISwapV1PairABI from '../../constants/abis/iswap-pair.json';
 
@@ -49,3 +50,21 @@ export const abis = [
     type: 'function',
   },
 ];
+
+function getParamTypes(params: any[]): string[] {
+  return params.map(({ type, components }) => {
+    if (type === 'tuple[]') return `(${getParamTypes(components || []).join(',')})[]`;
+    return type;
+  });
+}
+
+/** Maps EVM selectors to the plain-text signatures required by java-tron-provider. */
+export function createFunctionSignatures(): Record<string, string> {
+  const web3 = new Web3();
+  return abis.reduce<Record<string, string>>((signatures, entry: any) => {
+    if (entry.type !== 'function' || !entry.name) return signatures;
+    const signature = `${entry.name}(${getParamTypes(entry.inputs || []).join(',')})`;
+    signatures[web3.eth.abi.encodeFunctionSignature(signature)] = signature;
+    return signatures;
+  }, {});
+}

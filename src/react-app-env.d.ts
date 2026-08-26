@@ -21,11 +21,22 @@ interface tronWeb {
   trx?: { getBlock?: (m: string) => Promise };
   defaultAddress?: {
     base58?: '';
+    hex?: string;
   };
+  ready?: boolean;
+  address?: { toHex: (address: string) => string };
   fullNode?: {
     chainType?: '';
     host?: string;
   };
+}
+
+interface TronProvider {
+  isTronLink?: boolean;
+  request: (args: { method: string; params?: any }) => Promise<any>;
+  tronWeb?: tronWeb | false;
+  on?: (event: string, listener: (...args: any[]) => void) => void;
+  removeListener?: (event: string, listener: (...args: any[]) => void) => void;
 }
 
 interface Window {
@@ -36,6 +47,8 @@ interface Window {
   // },
   ethereum?: Ethereum;
   tronWeb?: tronWeb;
+  tron?: TronProvider;
+  tronLink?: TronProvider;
   web3?: Ethereum;
 }
 declare const __DEV__: boolean;

@@ -1,9 +1,9 @@
 import createTronLinkProvider from '../tronlinkProviderCompat';
-import Web3 from 'web3';
 import { AbstractConnectorArguments, ConnectorUpdate } from '@web3-react/types';
 import { AbstractConnector } from '@web3-react/abstract-connector';
-import { abis } from './tronlink-abis';
+import { abis, createFunctionSignatures } from './tronlink-abis';
 import { configureTronGridApiKey, optimizeTronProvider } from '../rateLimitedProvider';
+import { ethAddress } from '../javaTronProviderCompat';
 // import warning from 'tiny-warning'
 
 export class UserRejectedRequestError extends Error {
@@ -19,41 +19,6 @@ export class InjectedTronConnector extends AbstractConnector {
 
   constructor(kwargs: AbstractConnectorArguments) {
     super(kwargs);
-
-    const getFunctionSelector = (abi: any) => {
-      return abi.name + '(' + getParamTypes(abi.inputs || []).join(',') + ')';
-    };
-    const getParamTypes = (params: any) => {
-      return params.map(({ type, components }: { type: any; components: any }) => {
-        if (type === 'tuple[]') {
-          return (
-            '(' +
-            components
-              .map(({ type }: { type: any }) => {
-                return type;
-              })
-              .join(',') +
-            ')[]'
-          );
-        }
-        return type;
-      });
-    };
-    const signs: any = {};
-    // ABI encoding is local and does not need an Ethereum WebSocket connection.
-    const web3 = new Web3();
-    abis.map((fn: any) => {
-      try {
-        const sign = web3.eth.abi.encodeFunctionSignature({
-          name: fn.name,
-          type: fn.type,
-          inputs: fn.inputs,
-        });
-        signs[sign] = getFunctionSelector(fn);
-      } catch (err) {
-        // console.error(err);
-      }
-    });
     // TODO(tron): should auto-use same network as one selected in tronlink!
     configureTronGridApiKey();
     this.provider = optimizeTronProvider(
@@ -61,7 +26,7 @@ export class InjectedTronConnector extends AbstractConnector {
         network: process.env.REACT_APP_TRON_NETWORK,
         tronApiUrl: process.env.REACT_APP_NETWORK_URL,
         functionSignatures: abis,
-        signs,
+        signs: createFunctionSignatures(),
       }),
     );
     /*
@@ -78,8 +43,26 @@ export class InjectedTronConnector extends AbstractConnector {
   }
 
   public async activate(): Promise<ConnectorUpdate> {
-    const accounts = await this.requestProvider({ method: 'eth_accounts' });
-    const account = accounts[0];
+    const tronProvider = window.tron ?? window.tronLink;
+    if (!tronProvider?.request) throw new Error('TronLink is not installed.');
+
+    let accounts: string[];
+    try {
+      accounts = await tronProvider.request({ method: 'eth_requestAccounts' });
+    } catch (error: any) {
+      if (error?.code === 4001) throw new UserRejectedRequestError();
+      throw error;
+    }
+
+    const tronWeb = tronProvider.tronWeb || window.tronWeb;
+    if (!tronWeb) throw new Error('TronLink did not provide TronWeb after authorization.');
+    // The legacy transaction bridge consumes window.tronWeb. Modern TronLink
+    // exposes the same instance under window.tron.tronWeb.
+    window.tronWeb = tronWeb;
+
+    const tronHex = tronWeb.defaultAddress?.hex || (accounts?.[0] && tronWeb.address?.toHex(accounts[0]));
+    if (!tronHex) throw new Error('Unlock TronLink and select an account.');
+    const account = ethAddress.fromTronHex(tronHex);
     return { provider: this.provider, account };
   }
 
@@ -93,9 +76,9 @@ export class InjectedTronConnector extends AbstractConnector {
   }
 
   public async getAccount(): Promise<null | string> {
-    const accounts = await this.requestProvider({ method: 'eth_accounts' });
-    const account = accounts[0];
-    return account;
+    const tronWeb = window.tron?.tronWeb || window.tronLink?.tronWeb || window.tronWeb;
+    const tronHex = tronWeb && tronWeb.defaultAddress?.hex;
+    return tronHex ? ethAddress.fromTronHex(tronHex) : null;
   }
 
   public deactivate() {
@@ -103,7 +86,7 @@ export class InjectedTronConnector extends AbstractConnector {
   }
 
   public async isAuthorized(): Promise<boolean> {
-    // TODO: check if tronlink unlocked?
-    return true;
+    const tronWeb = window.tron?.tronWeb || window.tronLink?.tronWeb || window.tronWeb;
+    return Boolean(tronWeb && tronWeb.ready && tronWeb.defaultAddress?.hex);
   }
 }

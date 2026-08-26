@@ -90,15 +90,6 @@ export interface WalletInfo {
 }
 
 export const SUPPORTED_WALLETS: { [key: string]: WalletInfo } = {
-  INJECTED: {
-    connector: injected,
-    name: 'Injected',
-    iconName: 'arrow-right.svg',
-    description: 'Injected provider.',
-    href: null,
-    color: '#010101',
-    primary: true,
-  },
   TRONLINK: {
     connector: injected,
     name: 'TronLink',
@@ -106,6 +97,7 @@ export const SUPPORTED_WALLETS: { [key: string]: WalletInfo } = {
     description: 'Easy-to-use browser extension.',
     href: null,
     color: '#48489b',
+    primary: true,
   },
   // INJECTED: {
   //   connector: injected,
