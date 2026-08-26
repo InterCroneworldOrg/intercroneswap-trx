@@ -16,8 +16,10 @@ import {
   updateMulticallResults,
 } from './actions';
 
-// chunk calls so we do not exceed the gas limit
-const CALL_CHUNK_SIZE = 100;
+// TRON nodes enforce a short TVM execution timeout for constant calls. Keeping
+// batches small avoids an expensive aggregate timing out and being retried.
+const CALL_CHUNK_SIZE = 12;
+const MIN_BLOCKS_PER_FETCH = 5;
 
 /**
  * Fetches a chunk of calls, enforcing a minimum block number constraint
@@ -30,15 +32,12 @@ async function fetchChunk(
   chunk: Call[],
   minBlockNumber: number,
 ): Promise<{ results: string[]; blockNumber: number }> {
-  console.debug('Fetching chunk', multicallContract, chunk, minBlockNumber);
-
   let resultsBlockNumber, returnData;
   try {
     [resultsBlockNumber, returnData] = await multicallContract.aggregate(
       chunk.map((obj) => [obj.address, obj.callData]),
     );
   } catch (error) {
-    console.debug('Failed to fetch chunk inside retry', error);
     throw error;
   }
   if (resultsBlockNumber.toNumber() < minBlockNumber) {
@@ -65,7 +64,7 @@ export function activeListeningKeys(
   return Object.keys(listeners).reduce<{ [callKey: string]: number }>((memo, callKey) => {
     const keyListeners = listeners[callKey];
 
-    memo[callKey] = Object.keys(keyListeners)
+    const requestedBlocksPerFetch = Object.keys(keyListeners)
       .filter((key) => {
         const blocksPerFetch = parseInt(key);
         if (blocksPerFetch <= 0) return false;
@@ -74,6 +73,9 @@ export function activeListeningKeys(
       .reduce((previousMin, current) => {
         return Math.min(previousMin, parseInt(current));
       }, Infinity);
+    memo[callKey] = Number.isFinite(requestedBlocksPerFetch)
+      ? Math.max(requestedBlocksPerFetch, MIN_BLOCKS_PER_FETCH)
+      : requestedBlocksPerFetch;
     return memo;
   }, {});
 }
@@ -161,7 +163,7 @@ export default function Updater(): null {
       blockNumber: latestBlockNumber,
       cancellations: chunkedCalls.map((chunk, index) => {
         const { cancel, promise } = retry(() => fetchChunk(multicallContract, chunk, latestBlockNumber), {
-          n: 2,
+          n: 1,
           minWait: 2500,
           maxWait: 7500,
         });

@@ -42,6 +42,11 @@ interface CallResult {
 }
 
 const INVALID_RESULT: CallResult = { valid: false, blockNumber: undefined, data: undefined };
+const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
+
+function isCallableAddress(address?: string): address is string {
+  return Boolean(address && address.toLowerCase() !== ZERO_ADDRESS);
+}
 
 // use this options object
 export const NEVER_RELOAD: ListenerOptions = {
@@ -210,7 +215,7 @@ export function useMultipleContractSingleData(
     () =>
       fragment && addresses && addresses.length > 0 && callData
         ? addresses.map<Call | undefined>((address) => {
-            return address && callData
+            return isCallableAddress(address) && callData
               ? {
                   address,
                   callData,
