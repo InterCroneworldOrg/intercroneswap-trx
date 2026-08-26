@@ -1,5 +1,4 @@
 // all abis...
-import { V_FACTORY_ABI, V_EXCHANGE_ABI } from '../../constants/v';
 import ENS_ABI from '../../constants/abis/ens-registrar.json';
 
 import ENS_PUBLIC_RESOLVER_ABI from '../../constants/abis/ens-public-resolver.json';
@@ -13,8 +12,6 @@ import ISwapV1PairABI from '../../constants/abis/iswap-pair.json';
 
 export const abis = [
   ...ERC20_ABI,
-  ...V_FACTORY_ABI,
-  ...V_EXCHANGE_ABI,
   ...IntercroneswapV1Router02ABI,
   // ...IUniswapV2PairABI,
   ...ENS_ABI,

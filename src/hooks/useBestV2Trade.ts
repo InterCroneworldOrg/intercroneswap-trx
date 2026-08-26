@@ -1,10 +1,31 @@
-import { Currency, CurrencyAmount, Trade, TradeType } from '@intercroneswap/v2-sdk';
+import { Currency, CurrencyAmount, currencyEquals, Percent, Trade, TradeType } from '@intercroneswap/v2-sdk';
 import { useMemo } from 'react';
 import { BETTER_TRADE_LESS_HOPS_THRESHOLD } from '../constants';
-import { isTradeBetter } from '../data/V';
 import { useAllCommonPairs } from './Trades';
 
 const MAX_HOPS = 3;
+const ZERO_PERCENT = new Percent('0');
+const ONE_HUNDRED_PERCENT = new Percent('1');
+
+function isTradeBetter(tradeA: Trade | undefined, tradeB: Trade | undefined, minimumDelta: Percent): boolean {
+  if (tradeA && !tradeB) return false;
+  if (tradeB && !tradeA) return true;
+  if (!tradeA || !tradeB) return false;
+
+  if (
+    tradeA.tradeType !== tradeB.tradeType ||
+    !currencyEquals(tradeA.inputAmount.currency, tradeB.inputAmount.currency) ||
+    !currencyEquals(tradeA.outputAmount.currency, tradeB.outputAmount.currency)
+  ) {
+    throw new Error('Trades are not comparable');
+  }
+
+  if (minimumDelta.equalTo(ZERO_PERCENT)) {
+    return tradeA.executionPrice.lessThan(tradeB.executionPrice);
+  }
+
+  return tradeA.executionPrice.raw.multiply(minimumDelta.add(ONE_HUNDRED_PERCENT)).lessThan(tradeB.executionPrice);
+}
 
 /**
  * Returns the best v2 trade for a desired swap

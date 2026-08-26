@@ -39,7 +39,7 @@ import { currencyId } from '../../utils/currencyId';
 import { PoolPriceBar } from './PoolPriceBar';
 import CurrencyLogo from '../../components/CurrencyLogo';
 
-import { DEFAULT_FEE_LIMIT } from '../../tron-config.js';
+import { DEFAULT_FEE_LIMIT } from '../../tron-config';
 
 export default function AddLiquidity({
   match: {

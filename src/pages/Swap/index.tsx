@@ -11,20 +11,16 @@ import Column, { AutoColumn } from '../../components/Column';
 import ConfirmSwapModal from '../../components/swap/ConfirmSwapModal';
 import CurrencyInputPanel from '../../components/CurrencyInputPanel';
 import { AutoRow, RowBetween } from '../../components/Row';
-import BetterTradeLink, { DefaultVersionLink } from '../../components/swap/BetterTradeLink';
 import confirmPriceImpactWithoutFee from '../../components/swap/confirmPriceImpactWithoutFee';
 import { ArrowWrapper, BottomGrouping, SwapCallbackError, Wrapper } from '../../components/swap/styleds';
 import TokenWarningModal from '../../components/TokenWarningModal';
 import ProgressSteps from '../../components/ProgressSteps';
 
-import { BETTER_TRADE_LINK_THRESHOLD } from '../../constants';
-import { getTradeVersion, isTradeBetter } from '../../data/V';
 import { useActiveWeb3React } from '../../hooks';
 import { useCurrency } from '../../hooks/Tokens';
 import { ApprovalState, useApproveCallbackFromTrade } from '../../hooks/useApproveCallback';
 import useENSAddress from '../../hooks/useENSAddress';
 import { useSwapCallback } from '../../hooks/useSwapCallback';
-import useToggledVersion, { DEFAULT_VERSION, Version } from '../../hooks/useToggledVersion';
 import useWrapCallback, { WrapType } from '../../hooks/useWrapCallback';
 import { useWalletModalToggle } from '../../state/application/hooks';
 import { Field } from '../../state/swap/actions';
@@ -107,14 +103,7 @@ export default function Swap() {
 
   // swap state
   const { independentField, typedValue, recipient } = useSwapState();
-  const {
-    vTrade,
-    v1Trade,
-    currencyBalances,
-    parsedAmount,
-    currencies,
-    inputError: swapInputError,
-  } = useDerivedSwapInfo();
+  const { v1Trade, currencyBalances, parsedAmount, currencies, inputError: swapInputError } = useDerivedSwapInfo();
   const {
     wrapType,
     execute: onWrap,
@@ -122,20 +111,7 @@ export default function Swap() {
   } = useWrapCallback(currencies[Field.INPUT], currencies[Field.OUTPUT], typedValue);
   const showWrap: boolean = wrapType !== WrapType.NOT_APPLICABLE;
   const { address: recipientAddress } = useENSAddress(recipient);
-  const toggledVersion = useToggledVersion();
-  const tradesByVersion = {
-    [Version.v]: vTrade,
-    [Version.v1]: v1Trade,
-  };
-  const trade = showWrap ? undefined : tradesByVersion[toggledVersion];
-  const defaultTrade = showWrap ? undefined : tradesByVersion[DEFAULT_VERSION];
-
-  const betterTradeLinkVersion: Version | undefined =
-    toggledVersion === Version.v1 && isTradeBetter(v1Trade, vTrade, BETTER_TRADE_LINK_THRESHOLD)
-      ? Version.v
-      : toggledVersion === Version.v && isTradeBetter(vTrade, v1Trade)
-      ? Version.v1
-      : undefined;
+  const trade = showWrap ? undefined : v1Trade;
 
   const parsedAmounts = showWrap
     ? {
@@ -233,11 +209,7 @@ export default function Swap() {
               : (recipientAddress ?? recipient) === account
               ? 'Swap w/o Send + recipient'
               : 'Swap w/ Send',
-          label: [
-            trade?.inputAmount?.currency?.symbol,
-            trade?.outputAmount?.currency?.symbol,
-            getTradeVersion(trade),
-          ].join('/'),
+          label: [trade?.inputAmount?.currency?.symbol, trade?.outputAmount?.currency?.symbol, 'router'].join('/'),
         });
       })
       .catch((error) => {
@@ -489,11 +461,6 @@ export default function Swap() {
                 </Column>
               )}
               {isExpertMode && swapErrorMessage ? <SwapCallbackError error={swapErrorMessage} /> : null}
-              {betterTradeLinkVersion ? (
-                <BetterTradeLink version={betterTradeLinkVersion} />
-              ) : toggledVersion !== DEFAULT_VERSION && defaultTrade ? (
-                <DefaultVersionLink />
-              ) : null}
             </BottomGrouping>
           </Wrapper>
         </AppBody>

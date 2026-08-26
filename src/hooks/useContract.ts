@@ -1,9 +1,7 @@
 import { Contract } from '@ethersproject/contracts';
-import MERKLE_DISTRIBUTOR_ABI from '../constants/abis/merkle.json';
 import { ChainId, WETH } from '@intercroneswap/v2-sdk';
 import ISwapV1PairABI from '../constants/abis/iswap-pair.json';
 import { useMemo } from 'react';
-import { MERKLE_DISTRIBUTOR_ADDRESS } from '../constants';
 import {
   ARGENT_WALLET_DETECTOR_ABI,
   ARGENT_WALLET_DETECTOR_MAINNET_ADDRESS,
@@ -14,7 +12,6 @@ import { ERC20_BYTES32_ABI } from '../constants/abis/erc20';
 import ERC20_ABI from '../constants/abis/erc20.json';
 import WETH_ABI from '../constants/abis/weth.json';
 import { MULTICALL_ABI, MULTICALL_NETWORKS } from '../constants/multicall';
-import { V_EXCHANGE_ABI, V_FACTORY_ABI, V_FACTORY_ADDRESSES } from '../constants/v';
 import { getContract } from '../utils';
 import { useActiveWeb3React } from './index';
 
@@ -31,14 +28,6 @@ function useContract(address: string | undefined, ABI: any, withSignerIfPossible
       return null;
     }
   }, [address, ABI, library, withSignerIfPossible, account]);
-}
-
-export function useVFactoryContract(): Contract | null {
-  const { chainId } = useActiveWeb3React();
-  return useContract(chainId && V_FACTORY_ADDRESSES[chainId], V_FACTORY_ABI, false);
-}
-export function useVExchangeContract(address?: string, withSignerIfPossible?: boolean): Contract | null {
-  return useContract(address, V_EXCHANGE_ABI, withSignerIfPossible);
 }
 
 export function useTokenContract(tokenAddress?: string, withSignerIfPossible?: boolean): Contract | null {
@@ -92,9 +81,4 @@ export function usePairContract(pairAddress?: string, withSignerIfPossible?: boo
 export function useMulticallContract(): Contract | null {
   const { chainId } = useActiveWeb3React();
   return useContract(chainId && MULTICALL_NETWORKS[chainId], MULTICALL_ABI, false);
-}
-
-export function useMerkleDistributorContract(): Contract | null {
-  const { chainId } = useActiveWeb3React();
-  return useContract(chainId ? MERKLE_DISTRIBUTOR_ADDRESS[chainId] : undefined, MERKLE_DISTRIBUTOR_ABI, true);
 }

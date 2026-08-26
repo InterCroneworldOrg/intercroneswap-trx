@@ -2,16 +2,12 @@ import { Contract } from '@ethersproject/contracts';
 import { JSBI, Percent, Router, SwapParameters, Trade, TradeType } from '@intercroneswap/v2-sdk';
 import { useMemo } from 'react';
 import { BIPS_BASE, INITIAL_ALLOWED_SLIPPAGE } from '../constants';
-import { getTradeVersion, useVTradeExchangeAddress } from '../data/V';
 import { useTransactionAdder } from '../state/transactions/hooks';
 import { getRouterContract, isAddress, shortenAddress } from '../utils';
 import isZero from '../utils/isZero';
-import vSwapArguments from '../utils/vSwapArguments';
 import { useActiveWeb3React } from './index';
-import { useVExchangeContract } from './useContract';
 import useTransactionDeadline from './useTransactionDeadline';
 import useENS from './useENS';
-import { Version } from './useToggledVersion';
 import { DEFAULT_FEE_LIMIT } from '../tron-config';
 export enum SwapCallbackState {
   INVALID,
@@ -53,54 +49,37 @@ function useSwapCallArguments(
   const recipient = recipientAddressOrName === null ? account : recipientAddress;
   const deadline = useTransactionDeadline();
 
-  const vExchange = useVExchangeContract(useVTradeExchangeAddress(trade), true);
-
   return useMemo(() => {
-    const tradeVersion = getTradeVersion(trade);
-    if (!trade || !recipient || !library || !account || !tradeVersion || !chainId || !deadline) return [];
+    if (!trade || !recipient || !library || !account || !chainId || !deadline) return [];
 
-    const contract: Contract | null =
-      tradeVersion === Version.v1 ? getRouterContract(chainId, library, account) : vExchange;
+    const contract: Contract | null = getRouterContract(chainId, library, account);
     if (!contract) {
       return [];
     }
 
     const swapMethods = [];
 
-    switch (tradeVersion) {
-      case Version.v1:
-        swapMethods.push(
-          Router.swapCallParameters(trade, {
-            feeOnTransfer: false,
-            allowedSlippage: new Percent(JSBI.BigInt(allowedSlippage), BIPS_BASE),
-            recipient,
-            ttl: deadline.toNumber(),
-          }),
-        );
+    swapMethods.push(
+      Router.swapCallParameters(trade, {
+        feeOnTransfer: false,
+        allowedSlippage: new Percent(JSBI.BigInt(allowedSlippage), BIPS_BASE),
+        recipient,
+        ttl: deadline.toNumber(),
+      }),
+    );
 
-        if (trade.tradeType === TradeType.EXACT_INPUT) {
-          swapMethods.push(
-            Router.swapCallParameters(trade, {
-              feeOnTransfer: true,
-              allowedSlippage: new Percent(JSBI.BigInt(allowedSlippage), BIPS_BASE),
-              recipient,
-              ttl: deadline.toNumber(),
-            }),
-          );
-        }
-        break;
-      case Version.v:
-        swapMethods.push(
-          vSwapArguments(trade, {
-            allowedSlippage: new Percent(JSBI.BigInt(allowedSlippage), BIPS_BASE),
-            recipient,
-            ttl: deadline.toNumber(),
-          }),
-        );
-        break;
+    if (trade.tradeType === TradeType.EXACT_INPUT) {
+      swapMethods.push(
+        Router.swapCallParameters(trade, {
+          feeOnTransfer: true,
+          allowedSlippage: new Percent(JSBI.BigInt(allowedSlippage), BIPS_BASE),
+          recipient,
+          ttl: deadline.toNumber(),
+        }),
+      );
     }
     return swapMethods.map((parameters) => ({ parameters, contract }));
-  }, [account, allowedSlippage, chainId, deadline, library, recipient, trade, vExchange]);
+  }, [account, allowedSlippage, chainId, deadline, library, recipient, trade]);
 }
 
 // returns a function that will execute a swap, if the parameters are all valid
@@ -130,8 +109,6 @@ export function useSwapCallback(
         return { state: SwapCallbackState.LOADING, callback: null, error: null };
       }
     }
-
-    const tradeVersion = getTradeVersion(trade);
 
     return {
       state: SwapCallbackState.VALID,
@@ -223,13 +200,8 @@ export function useSwapCallback(
                       : recipientAddressOrName
                   }`;
 
-            const withVersion =
-              tradeVersion === Version.v1
-                ? withRecipient
-                : `${withRecipient} on ${(tradeVersion as any).toUpperCase()}`;
-
             addTransaction(response, {
-              summary: withVersion,
+              summary: withRecipient,
             });
 
             return response.hash;

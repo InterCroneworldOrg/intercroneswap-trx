@@ -4,14 +4,12 @@ import { Trade, TokenAmount, CurrencyAmount, ETHER } from '@intercroneswap/v2-sd
 import { useCallback, useMemo } from 'react';
 import { ROUTER_ADDRESS } from '../constants';
 import { useTokenAllowance } from '../data/Allowances';
-import { getTradeVersion, useVTradeExchangeAddress } from '../data/V';
 import { Field } from '../state/swap/actions';
 import { useTransactionAdder, useHasPendingApproval } from '../state/transactions/hooks';
 import { computeSlippageAdjustedAmounts } from '../utils/prices';
 // import { calculateGasMargin } from '../utils'
 import { useTokenContract } from './useContract';
 import { useActiveWeb3React } from './index';
-import { Version } from './useToggledVersion';
 import { DEFAULT_FEE_LIMIT } from '../tron-config';
 
 export enum ApprovalState {
@@ -108,7 +106,5 @@ export function useApproveCallbackFromTrade(trade?: Trade, allowedSlippage = 0) 
     () => (trade ? computeSlippageAdjustedAmounts(trade, allowedSlippage)[Field.INPUT] : undefined),
     [trade, allowedSlippage],
   );
-  const tradeIsV = getTradeVersion(trade) === Version.v;
-  const vExchangeAddress = useVTradeExchangeAddress(trade);
-  return useApproveCallback(amountToApprove, tradeIsV ? vExchangeAddress : ROUTER_ADDRESS);
+  return useApproveCallback(amountToApprove, ROUTER_ADDRESS);
 }
