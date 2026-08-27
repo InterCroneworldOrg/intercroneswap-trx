@@ -81,6 +81,14 @@ export default function Pool() {
   const theme = useContext(ThemeContext);
   const { account, chainId } = useActiveWeb3React();
   const allTokens = useAllTokens();
+  const tokensByAddress = useMemo(
+    () =>
+      Object.values(allTokens).reduce<{ [address: string]: Token }>((tokens, token) => {
+        tokens[token.address.toLowerCase()] = token;
+        return tokens;
+      }, {}),
+    [allTokens],
+  );
   const {
     positions: registryPositions,
     loading: registryLoading,
@@ -95,7 +103,7 @@ export default function Pool() {
         const token0Address = tronAddressToEvmAddress(position.token0_address);
         const token1Address = tronAddressToEvmAddress(position.token1_address);
         const token0 =
-          allTokens[token0Address] ||
+          tokensByAddress[token0Address.toLowerCase()] ||
           new Token(
             chainId,
             token0Address,
@@ -104,7 +112,7 @@ export default function Pool() {
             position.token0_name,
           );
         const token1 =
-          allTokens[token1Address] ||
+          tokensByAddress[token1Address.toLowerCase()] ||
           new Token(
             chainId,
             token1Address,
@@ -123,7 +131,7 @@ export default function Pool() {
         return [];
       }
     });
-  }, [allTokens, chainId, registryPositions]);
+  }, [chainId, registryPositions, tokensByAddress]);
 
   const v1Pairs = usePairsByAddresses(registryPairs);
   const v1IsLoading = registryLoading || v1Pairs.some(([state]) => state === PairState.LOADING);
