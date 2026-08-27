@@ -1,5 +1,5 @@
 import { Contract } from '@ethersproject/contracts';
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useActiveWeb3React } from '../../hooks';
 import { useMulticallContract } from '../../hooks/useContract';
@@ -13,6 +13,7 @@ import {
   errorFetchingMulticallResults,
   fetchingMulticallResults,
   parseCallKey,
+  toCallKey,
   updateMulticallResults,
 } from './actions';
 
@@ -137,6 +138,8 @@ export default function Updater(): null {
   const latestBlockNumber = useBlockNumber();
   const { chainId } = useActiveWeb3React();
   const multicallContract = useMulticallContract();
+  const activeQueue = useRef<{ chainId: number; cancel: () => void }>();
+  const [queueRevision, setQueueRevision] = useState(0);
 
   const listeningKeys: { [callKey: string]: number } = useMemo(() => {
     return activeListeningKeys(debouncedListeners, chainId);
@@ -152,13 +155,22 @@ export default function Updater(): null {
   );
 
   useEffect(() => {
-    if (!latestBlockNumber || !chainId || !multicallContract) return;
+    if (!latestBlockNumber || !chainId || !multicallContract || activeQueue.current) return;
 
     const outdatedCallKeys: string[] = JSON.parse(serializedOutdatedCallKeys);
     if (outdatedCallKeys.length === 0) return;
     const calls = outdatedCallKeys.map((key) => parseCallKey(key));
-
     const chunkedCalls = chunkArray(calls, CALL_CHUNK_SIZE);
+    let cancelled = false;
+    let cancelCurrentRequest: (() => void) | undefined;
+
+    activeQueue.current = {
+      chainId,
+      cancel: () => {
+        cancelled = true;
+        cancelCurrentRequest?.();
+      },
+    };
 
     dispatch(
       fetchingMulticallResults({
@@ -168,57 +180,71 @@ export default function Updater(): null {
       }),
     );
 
-    let cancelled = false;
-    let cancelCurrentRequest: (() => void) | undefined;
-
     const fetchSequentially = async () => {
-      for (const chunk of chunkedCalls) {
-        if (cancelled) return;
-
-        const { cancel, promise } = retry(() => fetchChunk(multicallContract, chunk, latestBlockNumber), {
-          n: 2,
-          minWait: 3000,
-          maxWait: 9000,
-        });
-        cancelCurrentRequest = cancel;
-
-        try {
-          const { results: returnData, blockNumber: fetchBlockNumber } = await promise;
+      try {
+        for (const chunk of chunkedCalls) {
           if (cancelled) return;
 
-          dispatch(
-            updateMulticallResults({
-              chainId,
-              results: chunk.reduce<{ [callKey: string]: string | null }>((memo, call, index) => {
-                memo[outdatedCallKeys[calls.indexOf(call)]] = returnData[index] ?? null;
-                return memo;
-              }, {}),
-              blockNumber: fetchBlockNumber,
-            }),
-          );
-        } catch (error) {
-          if (error instanceof CancelledError || cancelled) return;
-          console.warn('Multicall request failed after retry; continuing with remaining calls', error);
-          dispatch(
-            errorFetchingMulticallResults({
-              calls: chunk,
-              chainId,
-              fetchingBlockNumber: latestBlockNumber,
-            }),
-          );
-        }
+          const { cancel, promise } = retry(() => fetchChunk(multicallContract, chunk, latestBlockNumber), {
+            n: 2,
+            minWait: 3000,
+            maxWait: 9000,
+          });
+          cancelCurrentRequest = cancel;
 
-        if (!cancelled) await wait(CHUNK_REQUEST_GAP_MS);
+          try {
+            const { results: returnData, blockNumber: fetchBlockNumber } = await promise;
+            if (cancelled) return;
+
+            dispatch(
+              updateMulticallResults({
+                chainId,
+                results: chunk.reduce<{ [callKey: string]: string | null }>((memo, call, index) => {
+                  memo[toCallKey(call)] = returnData[index] ?? null;
+                  return memo;
+                }, {}),
+                blockNumber: fetchBlockNumber,
+              }),
+            );
+          } catch (error) {
+            if (error instanceof CancelledError || cancelled) return;
+            console.warn('Multicall request failed after retry; continuing with remaining calls', error);
+            dispatch(
+              errorFetchingMulticallResults({
+                calls: chunk,
+                chainId,
+                fetchingBlockNumber: latestBlockNumber,
+              }),
+            );
+          }
+
+          if (!cancelled) await wait(CHUNK_REQUEST_GAP_MS);
+        }
+      } finally {
+        if (activeQueue.current?.chainId === chainId) {
+          activeQueue.current = undefined;
+          setQueueRevision((revision) => revision + 1);
+        }
       }
     };
 
     fetchSequentially();
+  }, [
+    chainId,
+    multicallContract,
+    dispatch,
+    serializedOutdatedCallKeys,
+    latestBlockNumber,
+    queueRevision,
+  ]);
 
-    return () => {
-      cancelled = true;
-      cancelCurrentRequest?.();
-    };
-  }, [chainId, multicallContract, dispatch, serializedOutdatedCallKeys, latestBlockNumber]);
+  useEffect(
+    () => () => {
+      activeQueue.current?.cancel();
+      activeQueue.current = undefined;
+    },
+    [chainId, multicallContract],
+  );
 
   return null;
 }
