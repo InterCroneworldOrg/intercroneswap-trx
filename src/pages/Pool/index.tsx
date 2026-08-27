@@ -17,6 +17,7 @@ import { useWalletModalToggle } from '../../state/application/hooks';
 import { StyledHeading } from '../App';
 import { useWalletLiquidityRegistry } from '../../hooks/useMarketRegistry';
 import { tronAddressToEvmAddress } from '../../tron-config';
+import { useAllTokens } from '../../hooks/Tokens';
 
 const PageWrapper = styled(AutoColumn)`
   max-width: 840px;
@@ -79,6 +80,7 @@ const ResponsiveButtonSecondary = styled(ButtonSecondary)`
 export default function Pool() {
   const theme = useContext(ThemeContext);
   const { account, chainId } = useActiveWeb3React();
+  const allTokens = useAllTokens();
   const {
     positions: registryPositions,
     loading: registryLoading,
@@ -90,20 +92,26 @@ export default function Pool() {
     if (!chainId) return [];
     return registryPositions.flatMap((position) => {
       try {
-        const token0 = new Token(
-          chainId,
-          tronAddressToEvmAddress(position.token0_address),
-          Number(position.token0_decimals),
-          position.token0_symbol,
-          position.token0_name,
-        );
-        const token1 = new Token(
-          chainId,
-          tronAddressToEvmAddress(position.token1_address),
-          Number(position.token1_decimals),
-          position.token1_symbol,
-          position.token1_name,
-        );
+        const token0Address = tronAddressToEvmAddress(position.token0_address);
+        const token1Address = tronAddressToEvmAddress(position.token1_address);
+        const token0 =
+          allTokens[token0Address] ||
+          new Token(
+            chainId,
+            token0Address,
+            Number(position.token0_decimals),
+            position.token0_symbol,
+            position.token0_name,
+          );
+        const token1 =
+          allTokens[token1Address] ||
+          new Token(
+            chainId,
+            token1Address,
+            Number(position.token1_decimals),
+            position.token1_symbol,
+            position.token1_name,
+          );
         return [
           {
             pairAddress: tronAddressToEvmAddress(position.pair_address),
@@ -115,7 +123,7 @@ export default function Pool() {
         return [];
       }
     });
-  }, [chainId, registryPositions]);
+  }, [allTokens, chainId, registryPositions]);
 
   const v1Pairs = usePairsByAddresses(registryPairs);
   const v1IsLoading = registryLoading || v1Pairs.some(([state]) => state === PairState.LOADING);
