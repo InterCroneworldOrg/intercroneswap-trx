@@ -44,7 +44,7 @@ jobs:
             REACT_APP_TRON_NETWORK=mainnet
             REACT_APP_RPC_POLLING_INTERVAL_MS=30000
             REACT_APP_RPC_CACHE_TTL_MS=12000
-            REACT_APP_RPC_MIN_INTERVAL_MS=120
+            REACT_APP_RPC_MIN_INTERVAL_MS=350
           secrets: |
             trongrid_api_key=${{ secrets.TRONGRID_API_KEY }}
           cache-from: type=gha
