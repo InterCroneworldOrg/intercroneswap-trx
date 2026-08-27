@@ -1,5 +1,5 @@
 import { TokenAmount, Pair, Currency, Token } from '@intercroneswap/v2-sdk';
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import ISwapV1PairABI from '../constants/abis/iswap-pair.json';
 import { Interface } from '@ethersproject/abi';
 import { useActiveWeb3React } from '../hooks';
@@ -8,6 +8,45 @@ import { useFactoryContract } from '../hooks/useContract';
 import { NEVER_RELOAD, useMultipleContractSingleData, useSingleContractMultipleData } from '../state/multicall/hooks';
 import { wrappedCurrency } from '../utils/wrappedCurrency';
 const PAIR_INTERFACE = new Interface(ISwapV1PairABI);
+
+const RESERVE_CACHE_PREFIX = 'intercrone:pair-reserves:';
+const RESERVE_CACHE_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+
+interface CachedPairReserves {
+  reserve0: string;
+  reserve1: string;
+  updatedAt: number;
+}
+
+function readCachedPairReserves(pairAddress: string): CachedPairReserves | undefined {
+  try {
+    const value = window.localStorage.getItem(`${RESERVE_CACHE_PREFIX}${pairAddress.toLowerCase()}`);
+    if (!value) return undefined;
+    const cached = JSON.parse(value) as CachedPairReserves;
+    if (
+      !cached.reserve0 ||
+      !cached.reserve1 ||
+      !cached.updatedAt ||
+      Date.now() - cached.updatedAt > RESERVE_CACHE_MAX_AGE_MS
+    ) {
+      return undefined;
+    }
+    return cached;
+  } catch {
+    return undefined;
+  }
+}
+
+function writeCachedPairReserves(pairAddress: string, reserve0: string, reserve1: string): void {
+  try {
+    window.localStorage.setItem(
+      `${RESERVE_CACHE_PREFIX}${pairAddress.toLowerCase()}`,
+      JSON.stringify({ reserve0, reserve1, updatedAt: Date.now() }),
+    );
+  } catch {
+    // Storage may be unavailable (private mode or quota); live RPC data still works.
+  }
+}
 
 export enum PairState {
   LOADING,
@@ -74,12 +113,27 @@ export function usePairsByAddresses(
   const pairAddresses = useMemo(() => positions.map(({ pairAddress }) => pairAddress), [positions]);
   const results = useMultipleContractSingleData(pairAddresses, PAIR_INTERFACE, 'getReserves');
 
+  useEffect(() => {
+    results.forEach(({ result }, index) => {
+      const pairAddress = pairAddresses[index];
+      if (pairAddress && result?.reserve0 !== undefined && result?.reserve1 !== undefined) {
+        writeCachedPairReserves(pairAddress, result.reserve0.toString(), result.reserve1.toString());
+      }
+    });
+  }, [pairAddresses, results]);
+
   return useMemo(
     () =>
       positions.map(({ pairAddress, tokens }, index) => {
-        const { result: reserves, loading, error } = results[index] || {};
-        if (loading) return [PairState.LOADING, null];
-        if (error || !reserves) return [PairState.NOT_EXISTS, null];
+        const { result: liveReserves, loading, error } = results[index] || {};
+        const cachedReserves = readCachedPairReserves(pairAddress);
+        const reserves = liveReserves || cachedReserves;
+
+        // Show the last known reserves immediately after a browser refresh while
+        // the rate-limited TronGrid request refreshes them in the background.
+        if (!reserves && loading) return [PairState.LOADING, null];
+        if (!reserves && error) return [PairState.NOT_EXISTS, null];
+        if (!reserves) return [PairState.LOADING, null];
 
         const [token0, token1] = tokens[0].sortsBefore(tokens[1]) ? tokens : [tokens[1], tokens[0]];
         return [
