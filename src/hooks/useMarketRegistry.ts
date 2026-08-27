@@ -64,11 +64,22 @@ export function useWalletLiquidityRegistry(walletAddress?: string | null): {
       headers: { Accept: 'application/json' },
     })
       .then(async (response) => {
-        const body = (await response.json()) as WalletLiquidityResponse | { error?: string };
-        if (!response.ok) {
-          throw new Error('error' in body && body.error ? body.error : `Registry request failed (${response.status})`);
+        const responseText = await response.text();
+        let body: WalletLiquidityResponse | { error?: string } | undefined;
+        try {
+          body = responseText ? (JSON.parse(responseText) as WalletLiquidityResponse | { error?: string }) : undefined;
+        } catch {
+          body = undefined;
         }
-        return body as WalletLiquidityResponse;
+        if (!response.ok) {
+          throw new Error(
+            body && 'error' in body && body.error ? body.error : `Registry request failed (${response.status})`,
+          );
+        }
+        if (!body || !('positions' in body) || !Array.isArray(body.positions)) {
+          throw new Error('Market registry returned an invalid response');
+        }
+        return body;
       })
       .then((body) => {
         cache.set(walletAddress, {
