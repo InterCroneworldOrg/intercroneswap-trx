@@ -1,22 +1,22 @@
 import { useContext, useMemo } from 'react';
 import styled, { ThemeContext } from 'styled-components';
-import { Pair } from '@intercroneswap/v2-sdk';
+import { Pair, Token } from '@intercroneswap/v2-sdk';
 import { Link } from 'react-router-dom';
 import { SwapPoolTabs } from '../../components/NavigationTabs';
 import FullPositionCard from '../../components/PositionCard';
-import { useTokenBalancesWithLoadingIndicator } from '../../state/wallet/hooks';
 import { StyledInternalLink, ExternalLink, TYPE, HideSmall, Divider, Button } from '../../theme';
 import Card, { GreyCard, LightCard } from '../../components/Card';
 import { AutoRow, RowBetween } from '../../components/Row';
 import { ButtonPrimary, ButtonSecondary } from '../../components/Button';
 import { AutoColumn } from '../../components/Column';
 import { useActiveWeb3React } from '../../hooks';
-import { usePairs } from '../../data/Reserves';
-import { useAsyncV1LiquidityTokens, useTrackedTokenPairs } from '../../state/user/hooks';
+import { PairState, usePairsByAddresses } from '../../data/Reserves';
 import { Dots } from '../../components/swap/styleds';
 import { CardSection, DataCard, CardNoise } from '../../components/vote/styled';
 import { useWalletModalToggle } from '../../state/application/hooks';
 import { StyledHeading } from '../App';
+import { useWalletLiquidityRegistry } from '../../hooks/useMarketRegistry';
+import { tronAddressToEvmAddress } from '../../tron-config';
 
 const PageWrapper = styled(AutoColumn)`
   max-width: 840px;
@@ -78,34 +78,51 @@ const ResponsiveButtonSecondary = styled(ButtonSecondary)`
 
 export default function Pool() {
   const theme = useContext(ThemeContext);
-  const { account } = useActiveWeb3React();
+  const { account, chainId } = useActiveWeb3React();
+  const {
+    positions: registryPositions,
+    loading: registryLoading,
+    error: registryError,
+    refresh: refreshRegistry,
+  } = useWalletLiquidityRegistry(account);
 
-  const trackedTokenPairs = useTrackedTokenPairs();
-  const tokenPairsWithLiquidityTokens = useAsyncV1LiquidityTokens(trackedTokenPairs);
-  const liquidityTokens = useMemo(
-    () => tokenPairsWithLiquidityTokens.map((tpwlt) => tpwlt.liquidityToken),
-    [tokenPairsWithLiquidityTokens],
-  );
-  const [v1PairsBalances, fetchingV1PairBalances] = useTokenBalancesWithLoadingIndicator(
-    account ?? undefined,
-    liquidityTokens,
-  );
+  const registryPairs = useMemo(() => {
+    if (!chainId) return [];
+    return registryPositions.flatMap((position) => {
+      try {
+        const token0 = new Token(
+          chainId,
+          tronAddressToEvmAddress(position.token0_address),
+          Number(position.token0_decimals),
+          position.token0_symbol,
+          position.token0_name,
+        );
+        const token1 = new Token(
+          chainId,
+          tronAddressToEvmAddress(position.token1_address),
+          Number(position.token1_decimals),
+          position.token1_symbol,
+          position.token1_name,
+        );
+        return [
+          {
+            pairAddress: tronAddressToEvmAddress(position.pair_address),
+            tokens: [token0, token1] as [Token, Token],
+          },
+        ];
+      } catch (error) {
+        console.warn('Ignoring invalid market registry position', position.pair_address, error);
+        return [];
+      }
+    });
+  }, [chainId, registryPositions]);
 
-  const liquidityTokensWithBalances = useMemo(
-    () =>
-      tokenPairsWithLiquidityTokens.filter(({ liquidityToken }) =>
-        v1PairsBalances[liquidityToken.address]?.greaterThan('0'),
-      ),
-    [tokenPairsWithLiquidityTokens, v1PairsBalances],
-  );
-
-  const v1Pairs = usePairs(liquidityTokensWithBalances.map(({ tokens }) => tokens));
-  const v1IsLoading =
-    fetchingV1PairBalances ||
-    v1Pairs?.length < liquidityTokensWithBalances.length ||
-    v1Pairs?.some((V1Pair) => !V1Pair);
-
-  const allV1PairsWithLiquidity = v1Pairs.map(([, pair]) => pair).filter((v1Pair): v1Pair is Pair => Boolean(v1Pair));
+  const v1Pairs = usePairsByAddresses(registryPairs);
+  const v1IsLoading = registryLoading || v1Pairs.some(([state]) => state === PairState.LOADING);
+  const allV1PairsWithLiquidity = v1Pairs
+    .filter(([state]) => state === PairState.EXISTS)
+    .map(([, pair]) => pair)
+    .filter((pair): pair is Pair => Boolean(pair));
 
   const toggleWalletModal = useWalletModalToggle();
 
@@ -188,10 +205,19 @@ export default function Pool() {
                     Connect to a wallet to view your liquidity.
                   </TYPE.body>
                 </GreyCard>
+              ) : registryError ? (
+                <GreyCard padding="12px">
+                  <TYPE.body color={theme.text1} textAlign="left">
+                    Market registry unavailable. {registryError}
+                  </TYPE.body>
+                  <Button style={{ marginTop: '12px' }} onClick={refreshRegistry}>
+                    Retry
+                  </Button>
+                </GreyCard>
               ) : v1IsLoading ? (
                 <GreyCard padding="12px">
                   <TYPE.body color={theme.text1} textAlign="left">
-                    <Dots>Loading</Dots>
+                    <Dots>Loading positions</Dots>
                   </TYPE.body>
                 </GreyCard>
               ) : allV1PairsWithLiquidity?.length > 0 ? (
