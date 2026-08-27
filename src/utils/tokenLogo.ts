@@ -1,21 +1,21 @@
 import { TokenList } from '@intercroneswap/token-lists';
-import { ethAddress } from '../connectors/javaTronProviderCompat';
 import { PLZ } from '../constants/tokens';
 
-const coinTopFormats = ['png', 'jpeg', 'jpg'];
-
+/**
+ * Return only explicitly curated logo URLs. Guessing filenames on third-party
+ * hosts creates several failed requests per unknown token and is blocked by
+ * modern browsers' ORB protection.
+ */
 export const getTokenLogoURL = (address: string, allTokens: TokenList[]): string[] => {
-  if (address.toLocaleLowerCase() === PLZ.address.toLowerCase())
+  if (address.toLowerCase() === PLZ.address.toLowerCase()) {
     return [
       'https://static.tronscan.org/production/upload/logo/new/TYK71t3eD1pTxpkDp7gbqXM5DYfaVdfKjV.png?t=1668077389818',
     ];
-  const default_list_logo = allTokens
+  }
+
+  const curatedLogo = allTokens
     .flatMap((tokens) => tokens.tokens)
     .find((token) => token.address.toLowerCase() === address.toLowerCase())?.logoURI;
-  const coin_top_main_url = `https://coin.top/production/upload/logo/${ethAddress.toTron(address)}.`;
-  const static_tronscan_url = `https://static.tronscan.org/production/upload/logo/new/${ethAddress.toTron(address)}.`;
-  const allCoinTopFormats = coinTopFormats.map((format) => `${coin_top_main_url}${format}`);
-  const newStaticFormats = coinTopFormats.map((format) => `${static_tronscan_url}${format}`);
-  const allImageTypes = allCoinTopFormats.concat(newStaticFormats);
-  return default_list_logo ? [default_list_logo] : allImageTypes;
+
+  return curatedLogo ? [curatedLogo] : [];
 };
