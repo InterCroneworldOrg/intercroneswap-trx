@@ -40,6 +40,7 @@ import { PoolPriceBar } from './PoolPriceBar';
 import CurrencyLogo from '../../components/CurrencyLogo';
 
 import { DEFAULT_FEE_LIMIT } from '../../tron-config';
+import { clearLiquidityValueCache } from '../../utils/liquidityValueCache';
 
 export default function AddLiquidity({
   match: {
@@ -195,6 +196,8 @@ export default function AddLiquidity({
           });
 
           setTxHash(response.hash);
+
+          clearLiquidityValueCache(chainId, account, pair?.liquidityToken.address);
 
           ReactGA.event({
             category: 'Liquidity',

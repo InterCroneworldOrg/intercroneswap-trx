@@ -44,6 +44,7 @@ import { Field } from '../../state/burn/actions';
 import { useWalletModalToggle } from '../../state/application/hooks';
 import { useUserSlippageTolerance } from '../../state/user/hooks';
 import { DEFAULT_FEE_LIMIT } from '../../tron-config';
+import { clearLiquidityValueCache } from '../../utils/liquidityValueCache';
 
 export default function RemoveLiquidity({
   history,
@@ -268,6 +269,8 @@ export default function RemoveLiquidity({
         });
 
         setTxHash(response.hash);
+
+        clearLiquidityValueCache(chainId, account, pair?.liquidityToken.address);
 
         ReactGA.event({
           category: 'Liquidity',

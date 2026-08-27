@@ -4,10 +4,10 @@ import { useContext, useState } from 'react';
 import { ChevronDown, ChevronUp } from 'react-feather';
 import { Link } from 'react-router-dom';
 import styled, { ThemeContext } from 'styled-components';
-import { useTotalSupply } from '../../data/TotalSupply';
+import { useCachedLiquidityTotalSupply } from '../../data/TotalSupply';
 
 import { useActiveWeb3React } from '../../hooks';
-import { useTokenBalance } from '../../state/wallet/hooks';
+import { useCachedLiquidityTokenBalance } from '../../state/wallet/hooks';
 import { Divider, ExternalLink, TYPE } from '../../theme';
 import { currencyId } from '../../utils/currencyId';
 import { unwrappedToken } from '../../utils/wrappedCurrency';
@@ -79,8 +79,8 @@ PositionCardProps) {
 
   // const [showMore, setShowMore] = useState(false);
 
-  const userPoolBalance = useTokenBalance(account ?? undefined, pair.liquidityToken);
-  const totalPoolTokens = useTotalSupply(pair.liquidityToken);
+  const userPoolBalance = useCachedLiquidityTokenBalance(account ?? undefined, pair.liquidityToken);
+  const totalPoolTokens = useCachedLiquidityTotalSupply(pair.liquidityToken);
 
   const poolTokenPercentage =
     !!userPoolBalance && !!totalPoolTokens && JSBI.greaterThanOrEqual(totalPoolTokens.raw, userPoolBalance.raw)
@@ -223,8 +223,8 @@ export default function FullPositionCard({ pair, border }: PositionCardProps) {
 
   const [showMore, setShowMore] = useState(false);
 
-  const userPoolBalance = useTokenBalance(account ?? undefined, pair.liquidityToken);
-  const totalPoolTokens = useTotalSupply(pair.liquidityToken);
+  const userPoolBalance = useCachedLiquidityTokenBalance(account ?? undefined, pair.liquidityToken);
+  const totalPoolTokens = useCachedLiquidityTotalSupply(pair.liquidityToken);
 
   const poolTokenPercentage =
     !!userPoolBalance && !!totalPoolTokens && JSBI.greaterThanOrEqual(totalPoolTokens.raw, userPoolBalance.raw)
