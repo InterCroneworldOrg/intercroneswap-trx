@@ -143,6 +143,9 @@ export default function Header() {
         <Link to="/pool" className={`${Style.link} nav-link`}>
           Liquidity
         </Link>
+        <Link to="/markets" className={`${Style.link} nav-link`}>
+          Markets
+        </Link>
         <Link to="/farms" className={`${Style.link} nav-link`}>
           Farms
         </Link>
