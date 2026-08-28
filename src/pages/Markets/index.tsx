@@ -113,22 +113,31 @@ function numberValue(value?: string | null): number | undefined {
   return Number.isFinite(parsed) ? parsed : undefined;
 }
 
-function formatToken(value?: string | null): string {
+function formatToken(value?: string | null, symbol?: string): string {
   const parsed = numberValue(value);
   if (parsed === undefined) return '—';
+
+  if (Math.abs(parsed) >= 1_000_000) {
+    return `${new Intl.NumberFormat('en-US', {
+      maximumFractionDigits: 2,
+    }).format(parsed / 1_000_000)} M`;
+  }
+
+  const isStable = ['USDT', 'USDC'].includes((symbol || '').toUpperCase());
   return new Intl.NumberFormat('en-US', {
-    maximumFractionDigits: parsed >= 1000 ? 2 : parsed >= 1 ? 4 : 8,
+    minimumFractionDigits: isStable ? 2 : 0,
+    maximumFractionDigits: isStable ? 4 : parsed !== 0 && Math.abs(parsed) < 1 ? 8 : 4,
   }).format(parsed);
 }
 
 function formatUsd(value?: string | null): string {
   const parsed = numberValue(value);
   if (parsed === undefined) return '—';
-  if (parsed > 0 && parsed < 0.01) return `$${parsed.toPrecision(3)}`;
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: 'USD',
-    maximumFractionDigits: 2,
+    minimumFractionDigits: parsed !== 0 && Math.abs(parsed) < 0.01 ? 0 : 2,
+    maximumFractionDigits: parsed !== 0 && Math.abs(parsed) < 0.01 ? 6 : 2,
   }).format(parsed);
 }
 
@@ -175,8 +184,7 @@ export default function Markets() {
       <PageWrapper gap="lg">
         <GreyCard padding="16px">
           <TYPE.body>
-            Cached on-chain reserves and estimated USD values. The overview is loaded from the market registry
-            without additional blockchain requests from your browser.
+            Overview of current market reserves and estimated USD values.
           </TYPE.body>
           <TYPE.small color="text2" style={{ marginTop: '8px' }}>
             Last update: {updatedLabel(state?.last_success_at)} · {markets.length} markets
@@ -226,8 +234,8 @@ export default function Markets() {
                         <PairName>{pairLabel(market)}</PairName>
                         <Address title={market.pair_address}>{shortAddress(market.pair_address)}</Address>
                       </td>
-                      <td>{formatToken(market.reserve0)} {market.token0_symbol}</td>
-                      <td>{formatToken(market.reserve1)} {market.token1_symbol}</td>
+                      <td>{formatToken(market.reserve0, market.token0_symbol)} {market.token0_symbol}</td>
+                      <td>{formatToken(market.reserve1, market.token1_symbol)} {market.token1_symbol}</td>
                       <td>{formatUsd(market.token0_price_usd)}</td>
                       <td>{formatUsd(market.token1_price_usd)}</td>
                       <td>
