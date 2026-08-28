@@ -31,14 +31,14 @@ const SearchInput = styled.input`
   flex: 1;
   min-width: 0;
   padding: 12px 14px;
-  border: 1px solid ({ theme }) => theme.bg4;
+  border: 1px solid ${({ theme }) => theme.bg4};
   border-radius: 12px;
-  background: ({ theme }) => theme.bg2;
-  color: ({ theme }) => theme.text1;
+  background: ${({ theme }) => theme.bg2};
+  color: ${({ theme }) => theme.text1};
   outline: none;
 
   :focus {
-    border-color: ({ theme }) => theme.primary1;
+    border-color: ${({ theme }) => theme.primary1};
   }
 `;
 
@@ -57,12 +57,13 @@ const Table = styled.table`
   width: 100%;
   min-width: 860px;
   border-collapse: collapse;
+  color: ${({ theme }) => theme.text1};
 
   th,
   td {
     padding: 15px 16px;
     text-align: right;
-    border-bottom: 1px solid ({ theme }) => theme.bg3;
+    border-bottom: 1px solid ${({ theme }) => theme.bg3};
     white-space: nowrap;
   }
 
@@ -72,7 +73,7 @@ const Table = styled.table`
   }
 
   th {
-    color: ({ theme }) => theme.text2;
+    color: ${({ theme }) => theme.text2};
     font-size: 12px;
     font-weight: 500;
   }
@@ -83,18 +84,18 @@ const Table = styled.table`
 `;
 
 const PairName = styled.div`
-  color: ({ theme }) => theme.text1;
+  color: ${({ theme }) => theme.text1};
   font-weight: 600;
 `;
 
 const Address = styled.div`
-  color: ({ theme }) => theme.text2;
+  color: ${({ theme }) => theme.text2};
   font-size: 11px;
   margin-top: 4px;
 `;
 
 const Estimate = styled.span`
-  color: ({ theme }) => theme.text2;
+  color: ${({ theme }) => theme.text2};
   font-size: 12px;
 `;
 
