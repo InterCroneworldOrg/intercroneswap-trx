@@ -2,13 +2,13 @@ import { Currency, CurrencyAmount, JSBI, Pair, Percent, TokenAmount } from '@int
 import { useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { usePair } from '../../data/Reserves';
-import { useTotalSupply } from '../../data/TotalSupply';
+import { useCachedLiquidityTotalSupply } from '../../data/TotalSupply';
 
 import { useActiveWeb3React } from '../../hooks';
 import { wrappedCurrency } from '../../utils/wrappedCurrency';
 import { AppDispatch, AppState } from '../index';
 import { tryParseAmount } from '../swap/hooks';
-import { useTokenBalances } from '../wallet/hooks';
+import { useCachedLiquidityTokenBalance } from '../wallet/hooks';
 import { Field, typeInput } from './actions';
 
 export function useBurnState(): AppState['burn'] {
@@ -36,8 +36,7 @@ export function useDerivedBurnInfo(
   const [, pair] = usePair(currencyA, currencyB);
 
   // balances
-  const relevantTokenBalances = useTokenBalances(account ?? undefined, [pair?.liquidityToken]);
-  const userLiquidity: undefined | TokenAmount = relevantTokenBalances?.[pair?.liquidityToken?.address ?? ''];
+  const userLiquidity = useCachedLiquidityTokenBalance(account ?? undefined, pair?.liquidityToken);
 
   const [tokenA, tokenB] = [wrappedCurrency(currencyA, chainId), wrappedCurrency(currencyB, chainId)];
   const tokens = {
@@ -47,7 +46,7 @@ export function useDerivedBurnInfo(
   };
 
   // liquidity values
-  const totalSupply = useTotalSupply(pair?.liquidityToken);
+  const totalSupply = useCachedLiquidityTotalSupply(pair?.liquidityToken);
   const liquidityValueA =
     pair &&
     totalSupply &&

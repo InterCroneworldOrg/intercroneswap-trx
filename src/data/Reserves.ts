@@ -80,22 +80,39 @@ export function usePairs(currencies: [Currency | undefined, Currency | undefined
 
   const results = useMultipleContractSingleData(pairAddresses, PAIR_INTERFACE, 'getReserves');
 
+  useEffect(() => {
+    results.forEach(({ result }, index) => {
+      const pairAddress = pairAddresses[index];
+      if (pairAddress && result?.reserve0 !== undefined && result?.reserve1 !== undefined) {
+        writeCachedPairReserves(pairAddress, result.reserve0.toString(), result.reserve1.toString());
+      }
+    });
+  }, [pairAddresses, results]);
+
   return useMemo(() => {
     return tokens.map(([tokenA, tokenB], i) => {
-      const { result: reserves, loading } = results[i] || {};
+      const { result: liveReserves, loading, error } = results[i] || {};
       const pairAddressResult = pairAddressResults[i];
+      const pairAddress = pairAddresses[i];
 
-      if (pairAddressResult?.loading || loading) return [PairState.LOADING, null];
+      if (pairAddressResult?.loading) return [PairState.LOADING, null];
       if (!tokenA || !tokenB || tokenA.equals(tokenB)) return [PairState.INVALID, null];
-      if (!reserves) return [PairState.NOT_EXISTS, null];
-      const { reserve0, reserve1 } = reserves;
+      if (!pairAddress) return [PairState.NOT_EXISTS, null];
+
+      const cachedReserves = readCachedPairReserves(pairAddress);
+      const pairReserves = liveReserves || cachedReserves;
+      if (!pairReserves && loading) return [PairState.LOADING, null];
+      if (!pairReserves && error) return [PairState.NOT_EXISTS, null];
+      if (!pairReserves) return [PairState.NOT_EXISTS, null];
+
+      const { reserve0, reserve1 } = pairReserves;
       const [token0, token1] = tokenA.sortsBefore(tokenB) ? [tokenA, tokenB] : [tokenB, tokenA];
       return [
         PairState.EXISTS,
         new Pair(
           new TokenAmount(token0, reserve0.toString()),
           new TokenAmount(token1, reserve1.toString()),
-          pairAddresses[i],
+          pairAddress,
         ),
       ];
     });
