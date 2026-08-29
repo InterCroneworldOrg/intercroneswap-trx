@@ -5,7 +5,7 @@ import { useCallback, useMemo } from 'react';
 import { ROUTER_ADDRESS } from '../constants';
 import { useTokenAllowance } from '../data/Allowances';
 import { Field } from '../state/swap/actions';
-import { useTransactionAdder, useHasPendingApproval } from '../state/transactions/hooks';
+import { useTransactionAdder, useHasConfirmedApproval, useHasPendingApproval } from '../state/transactions/hooks';
 import { computeSlippageAdjustedAmounts } from '../utils/prices';
 // import { calculateGasMargin } from '../utils'
 import { useTokenContract } from './useContract';
@@ -29,11 +29,13 @@ export function useApproveCallback(
   // console.log(token, 'token');
   const currentAllowance = useTokenAllowance(token, account ?? undefined, spender);
   const pendingApproval = useHasPendingApproval(token?.address, spender);
+  const confirmedApproval = useHasConfirmedApproval(token?.address, spender);
 
   // check the current approval status
   const approvalState: ApprovalState = useMemo(() => {
     if (!amountToApprove || !spender) return ApprovalState.UNKNOWN;
     if (amountToApprove.currency === ETHER) return ApprovalState.APPROVED;
+    if (confirmedApproval) return ApprovalState.APPROVED;
     // we might not have enough data to know whether or not we need to approve
     if (!currentAllowance) return ApprovalState.UNKNOWN;
 
@@ -43,7 +45,7 @@ export function useApproveCallback(
         ? ApprovalState.PENDING
         : ApprovalState.NOT_APPROVED
       : ApprovalState.APPROVED;
-  }, [amountToApprove, currentAllowance, pendingApproval, spender]);
+  }, [amountToApprove, confirmedApproval, currentAllowance, pendingApproval, spender]);
 
   const tokenContract = useTokenContract(token?.address);
   const addTransaction = useTransactionAdder();
