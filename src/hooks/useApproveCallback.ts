@@ -1,7 +1,7 @@
 import { MaxUint256 } from '@ethersproject/constants';
 import { TransactionResponse } from '@ethersproject/providers';
 import { Trade, TokenAmount, CurrencyAmount, ETHER } from '@intercroneswap/v2-sdk';
-import { useCallback, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ROUTER_ADDRESS } from '../constants';
 import { useTokenAllowance } from '../data/Allowances';
 import { Field } from '../state/swap/actions';
@@ -30,12 +30,58 @@ export function useApproveCallback(
   const currentAllowance = useTokenAllowance(token, account ?? undefined, spender);
   const pendingApproval = useHasPendingApproval(token?.address, spender);
   const confirmedApproval = useHasConfirmedApproval(token?.address, spender);
+  const [interactiveAllowanceRaw, setInteractiveAllowanceRaw] = useState<string>();
+  const [interactiveCheckFailed, setInteractiveCheckFailed] = useState(false);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    setInteractiveAllowanceRaw(undefined);
+    setInteractiveCheckFailed(false);
+    if (!confirmedApproval || !token || !account || !spender || !amountToApprove) return () => controller.abort();
+
+    const apiBase = (process.env.REACT_APP_MARKETS_API_URL || '/markets-api').replace(/\/$/, '');
+    const params = new URLSearchParams({
+      token: token.address,
+      owner: account,
+      spender,
+    });
+
+    async function verifyAllowance(): Promise<void> {
+      try {
+        for (let attempt = 0; attempt < 5; attempt += 1) {
+          const response = await fetch(`${apiBase}/api/interactive/allowance?${params.toString()}`, {
+            signal: controller.signal,
+            headers: { Accept: 'application/json' },
+          });
+          if (!response.ok) throw new Error(`Allowance check failed (${response.status})`);
+          const body = await response.json();
+          const raw = String(body.allowance_raw ?? '0');
+          setInteractiveAllowanceRaw(raw);
+          if (!new TokenAmount(token, raw).lessThan(amountToApprove)) return;
+          if (attempt < 4) await new Promise((resolve) => window.setTimeout(resolve, 1000));
+        }
+      } catch (error: any) {
+        if (error?.name !== 'AbortError') setInteractiveCheckFailed(true);
+      }
+    }
+
+    verifyAllowance();
+    return () => controller.abort();
+  }, [account, amountToApprove, confirmedApproval, spender, token]);
 
   // check the current approval status
   const approvalState: ApprovalState = useMemo(() => {
     if (!amountToApprove || !spender) return ApprovalState.UNKNOWN;
     if (amountToApprove.currency === ETHER) return ApprovalState.APPROVED;
-    if (confirmedApproval) return ApprovalState.APPROVED;
+    if (confirmedApproval && token) {
+      if (interactiveAllowanceRaw !== undefined) {
+        return new TokenAmount(token, interactiveAllowanceRaw).lessThan(amountToApprove)
+          ? ApprovalState.NOT_APPROVED
+          : ApprovalState.APPROVED;
+      }
+      if (!interactiveCheckFailed) return ApprovalState.PENDING;
+      return ApprovalState.APPROVED;
+    }
     // we might not have enough data to know whether or not we need to approve
     if (!currentAllowance) return ApprovalState.UNKNOWN;
 
@@ -45,7 +91,7 @@ export function useApproveCallback(
         ? ApprovalState.PENDING
         : ApprovalState.NOT_APPROVED
       : ApprovalState.APPROVED;
-  }, [amountToApprove, confirmedApproval, currentAllowance, pendingApproval, spender]);
+  }, [amountToApprove, confirmedApproval, currentAllowance, interactiveAllowanceRaw, interactiveCheckFailed, pendingApproval, spender, token]);
 
   const tokenContract = useTokenContract(token?.address);
   const addTransaction = useTransactionAdder();
