@@ -55,7 +55,10 @@ export enum PairState {
   INVALID,
 }
 
-export function usePairs(currencies: [Currency | undefined, Currency | undefined][]): [PairState, Pair | null][] {
+export function usePairs(
+  currencies: [Currency | undefined, Currency | undefined][],
+  useCache = true,
+): [PairState, Pair | null][] {
   const { chainId } = useActiveWeb3React();
   const factory = useFactoryContract();
   const tokens = useMemo(
@@ -99,7 +102,7 @@ export function usePairs(currencies: [Currency | undefined, Currency | undefined
       if (!tokenA || !tokenB || tokenA.equals(tokenB)) return [PairState.INVALID, null];
       if (!pairAddress) return [PairState.NOT_EXISTS, null];
 
-      const cachedReserves = readCachedPairReserves(pairAddress);
+      const cachedReserves = useCache ? readCachedPairReserves(pairAddress) : undefined;
       const pairReserves = liveReserves || cachedReserves;
       if (!pairReserves && loading) return [PairState.LOADING, null];
       if (!pairReserves && error) return [PairState.NOT_EXISTS, null];
@@ -116,11 +119,11 @@ export function usePairs(currencies: [Currency | undefined, Currency | undefined
         ),
       ];
     });
-  }, [results, pairAddresses, pairAddressResults, JSON.stringify(tokens)]);
+  }, [results, pairAddresses, pairAddressResults, useCache, JSON.stringify(tokens)]);
 }
 
-export function usePair(tokenA?: Currency, tokenB?: Currency): [PairState, Pair | null] {
-  return usePairs([[tokenA, tokenB]])[0];
+export function usePair(tokenA?: Currency, tokenB?: Currency, useCache = true): [PairState, Pair | null] {
+  return usePairs([[tokenA, tokenB]], useCache)[0];
 }
 
 

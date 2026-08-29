@@ -19,6 +19,7 @@ import Row, { AutoRow, RowBetween, RowFixed } from '../../components/Row';
 
 // import Slider from '../../components/Slider';
 import CurrencyLogo from '../../components/CurrencyLogo';
+import Loader from '../../components/Loader';
 import { ROUTER_ADDRESS } from '../../constants';
 import { useActiveWeb3React } from '../../hooks';
 import { useCurrency } from '../../hooks/Tokens';
@@ -66,7 +67,7 @@ export default function RemoveLiquidity({
 
   // burn state
   const { independentField, typedValue } = useBurnState();
-  const { pair, parsedAmounts, error } = useDerivedBurnInfo(currencyA ?? undefined, currencyB ?? undefined);
+  const { pair, parsedAmounts, error, loading } = useDerivedBurnInfo(currencyA ?? undefined, currencyB ?? undefined);
   const { onUserInput: _onUserInput } = useBurnActionHandlers();
   const isValid = !error;
 
@@ -451,7 +452,16 @@ export default function RemoveLiquidity({
               pendingText={pendingText}
             />
             <AutoColumn gap="md">
-              <LightCard>
+              {loading && (
+                <LightCard>
+                  <ColumnCenter style={{ gap: '14px', padding: '18px 0' }}>
+                    <Loader size="32px" />
+                    <TYPE.white fontWeight={500}>Loading current pool data…</TYPE.white>
+                    <TYPE.small color="text2">Fetching reserves and your latest LP balance from the blockchain.</TYPE.small>
+                  </ColumnCenter>
+                </LightCard>
+              )}
+              <LightCard style={{ opacity: loading ? 0.55 : 1, pointerEvents: loading ? 'none' : 'auto' }}>
                 <AutoColumn gap="20px">
                   <RowBetween>
                     <TYPE.white fontWeight={500}>Remove Amount</TYPE.white>
