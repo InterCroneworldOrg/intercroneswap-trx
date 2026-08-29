@@ -26,6 +26,7 @@ export function useApproveCallback(
 ): [ApprovalState, () => Promise<void>] {
   const { account } = useActiveWeb3React();
   const token = amountToApprove instanceof TokenAmount ? amountToApprove.token : undefined;
+  const amountToApproveRaw = amountToApprove?.raw.toString();
   // console.log(token, 'token');
   const currentAllowance = useTokenAllowance(token, account ?? undefined, spender);
   const pendingApproval = useHasPendingApproval(token?.address, spender);
@@ -37,7 +38,7 @@ export function useApproveCallback(
     const controller = new AbortController();
     setInteractiveAllowanceRaw(undefined);
     setInteractiveCheckFailed(false);
-    if (!confirmedApproval || !token || !account || !spender || !amountToApprove) return () => controller.abort();
+    if (!confirmedApproval || !token || !account || !spender || !amountToApproveRaw) return () => controller.abort();
 
     const apiBase = (process.env.REACT_APP_MARKETS_API_URL || '/markets-api').replace(/\/$/, '');
     const params = new URLSearchParams({
@@ -57,7 +58,7 @@ export function useApproveCallback(
           const body = await response.json();
           const raw = String(body.allowance_raw ?? '0');
           setInteractiveAllowanceRaw(raw);
-          if (!new TokenAmount(token, raw).lessThan(amountToApprove)) return;
+          if (!new TokenAmount(token, raw).lessThan(new TokenAmount(token, amountToApproveRaw))) return;
           if (attempt < 4) await new Promise((resolve) => window.setTimeout(resolve, 1000));
         }
       } catch (error: any) {
@@ -67,7 +68,7 @@ export function useApproveCallback(
 
     verifyAllowance();
     return () => controller.abort();
-  }, [account, amountToApprove, confirmedApproval, spender, token]);
+  }, [account, amountToApproveRaw, confirmedApproval, spender, token]);
 
   // check the current approval status
   const approvalState: ApprovalState = useMemo(() => {
