@@ -86,8 +86,8 @@ const VersionButton = styled.button<{ active: boolean }>`
   border-radius: 9px;
   padding: 7px 11px;
   cursor: pointer;
-  color: ({ active }) => (active ? '#1c1c1c' : '#ffffff');
-  background: ({ active }) => (active ? '#f3c914' : 'transparent');
+  color: ${({ active }) => (active ? '#1c1c1c' : '#ffffff')};
+  background: ${({ active }) => (active ? '#f3c914' : 'transparent')};
   font-weight: 700;
 `;
 
