@@ -11,10 +11,12 @@ import PriceCard from '../PriceCard';
 import { isMobile } from '../../theme';
 import downarrow from '../../assets/images/downarrow.png';
 import uparrow from '../../assets/images/uparrow.png';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 import { Box } from 'rebass';
 import Blockchains from '../Blockchains';
+import { useV1Access } from '../../hooks/useVersionAccess';
+import { getActiveSwapVersion, setActiveSwapVersion, SwapVersion } from '../../swapVersion';
 
 const Row = styled(Box)<{ align?: string; padding?: string; border?: string; borderRadius?: string }>`
   display: flex;
@@ -70,6 +72,25 @@ export const AutoRow = styled(Row)<{ gap?: string; justify?: string }>`
   }
 `;
 
+
+const VersionToggle = styled.div`
+  display: inline-flex;
+  padding: 3px;
+  margin: 0 12px;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.28);
+`;
+
+const VersionButton = styled.button<{ active: boolean }>`
+  border: 0;
+  border-radius: 9px;
+  padding: 7px 11px;
+  cursor: pointer;
+  color: ({ active }) => (active ? '#1c1c1c' : '#ffffff');
+  background: ({ active }) => (active ? '#f3c914' : 'transparent');
+  font-weight: 700;
+`;
+
 const HeaderLinks = styled(Row)`
   justify-content: center;
   ${({ theme }) => theme.mediaWidth.upToMedium`
@@ -101,6 +122,29 @@ export default function Header() {
   const { account } = useActiveWeb3React();
   const [dropshow, setDropShow] = useState(false);
   const [toggle, setToggle] = useState(false);
+  const { enabled: v1Enabled, loading: accessLoading } = useV1Access(account);
+  const activeVersion = getActiveSwapVersion();
+
+  useEffect(() => {
+    if (!accessLoading && activeVersion === 'v1' && !v1Enabled) {
+      setActiveSwapVersion('v2');
+      window.location.reload();
+    }
+  }, [accessLoading, activeVersion, v1Enabled]);
+
+  const selectVersion = (version: SwapVersion) => {
+    if (version === activeVersion || (version === 'v1' && !v1Enabled)) return;
+    setActiveSwapVersion(version);
+    window.location.reload();
+  };
+
+  const versionToggle = () =>
+    account && v1Enabled ? (
+      <VersionToggle title="Select InterCrone Swap version">
+        <VersionButton active={activeVersion === 'v2'} onClick={() => selectVersion('v2')}>V2</VersionButton>
+        <VersionButton active={activeVersion === 'v1'} onClick={() => selectVersion('v1')}>V1</VersionButton>
+      </VersionToggle>
+    ) : null;
 
   const changeHamIcon = () => {
     setToggle(!toggle);
@@ -202,6 +246,7 @@ export default function Header() {
               <img width={'115px'} src={Logo} alt="logo" />
             </Navbar.Brand>
             {tokenDropdown()}
+            {versionToggle()}
             <Navbar.Toggle aria-controls="basic-navbar-nav" />
             <Navbar.Collapse id="basic-navbar-nav">
               <Nav className="mx-auto">{links()}</Nav>

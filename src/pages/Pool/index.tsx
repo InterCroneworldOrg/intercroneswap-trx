@@ -18,6 +18,7 @@ import { StyledHeading } from '../App';
 import { useWalletLiquidityRegistry } from '../../hooks/useMarketRegistry';
 import { tronAddressToEvmAddress } from '../../tron-config';
 import { useAllTokens } from '../../hooks/Tokens';
+import { getActiveSwapVersion } from '../../swapVersion';
 
 const PageWrapper = styled(AutoColumn)`
   max-width: 840px;
@@ -79,6 +80,7 @@ const ResponsiveButtonSecondary = styled(ButtonSecondary)`
 
 export default function Pool() {
   const theme = useContext(ThemeContext);
+  const swapVersion = getActiveSwapVersion();
   const { account, chainId } = useActiveWeb3React();
   const allTokens = useAllTokens();
   const tokensByAddress = useMemo(
@@ -144,7 +146,7 @@ export default function Pool() {
 
   return (
     <>
-      <StyledHeading className="lptext">Liquidity Pool</StyledHeading>
+      <StyledHeading className="lptext">Liquidity Pool {swapVersion.toUpperCase()}</StyledHeading>
 
       <PageWrapper>
         <VoteCard>

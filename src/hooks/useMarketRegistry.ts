@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { getActiveSwapVersion } from '../swapVersion';
 
 export interface RegistryLiquidityPosition {
   pair_address: string;
@@ -28,15 +29,16 @@ export function useWalletLiquidityRegistry(walletAddress?: string | null): {
   error?: string;
   refresh: () => void;
 } {
+  const version = getActiveSwapVersion();
   const [positions, setPositions] = useState<RegistryLiquidityPosition[]>([]);
   const [loading, setLoading] = useState(Boolean(walletAddress));
   const [error, setError] = useState<string>();
   const [revision, setRevision] = useState(0);
 
   const refresh = useCallback(() => {
-    if (walletAddress) cache.delete(walletAddress);
+    if (walletAddress) cache.delete(`${version}:${walletAddress}`);
     setRevision((current) => current + 1);
-  }, [walletAddress]);
+  }, [version, walletAddress]);
 
   useEffect(() => {
     if (!walletAddress) {
@@ -46,7 +48,8 @@ export function useWalletLiquidityRegistry(walletAddress?: string | null): {
       return;
     }
 
-    const cached = cache.get(walletAddress);
+    const cacheKey = `${version}:${walletAddress}`;
+    const cached = cache.get(cacheKey);
     if (cached && cached.expiresAt > Date.now()) {
       setPositions(cached.positions);
       setLoading(false);
@@ -59,7 +62,11 @@ export function useWalletLiquidityRegistry(walletAddress?: string | null): {
     setLoading(true);
     setError(undefined);
 
-    fetch(`${API_BASE_URL}/api/wallets/${encodeURIComponent(walletAddress)}/liquidity`, {
+    const endpoint = version === 'v1'
+      ? `${API_BASE_URL}/api/v1/wallets/${encodeURIComponent(walletAddress)}/liquidity`
+      : `${API_BASE_URL}/api/wallets/${encodeURIComponent(walletAddress)}/liquidity`;
+
+    fetch(endpoint, {
       signal: controller.signal,
       headers: { Accept: 'application/json' },
     })
@@ -82,7 +89,7 @@ export function useWalletLiquidityRegistry(walletAddress?: string | null): {
         return body;
       })
       .then((body) => {
-        cache.set(walletAddress, {
+        cache.set(cacheKey, {
           expiresAt: Date.now() + CACHE_TTL_MS,
           positions: body.positions,
         });
@@ -105,7 +112,7 @@ export function useWalletLiquidityRegistry(walletAddress?: string | null): {
       window.clearTimeout(timeout);
       controller.abort();
     };
-  }, [revision, walletAddress]);
+  }, [revision, version, walletAddress]);
 
   return { positions, loading, error, refresh };
 }

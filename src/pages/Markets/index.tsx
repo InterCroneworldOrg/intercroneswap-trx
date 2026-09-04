@@ -6,6 +6,7 @@ import { AutoColumn } from '../../components/Column';
 import { TYPE } from '../../theme';
 import { MarketOverview, useMarketOverview } from '../../hooks/useMarketOverview';
 import { StyledHeading } from '../App';
+import { getActiveSwapVersion } from '../../swapVersion';
 
 const PAGE_SIZE = 25;
 
@@ -156,6 +157,7 @@ function pairLabel(market: MarketOverview): string {
 }
 
 export default function Markets() {
+  const swapVersion = getActiveSwapVersion();
   const { markets, state, loading, error, refresh } = useMarketOverview();
   const [query, setQuery] = useState('');
   const [page, setPage] = useState(0);
@@ -180,7 +182,7 @@ export default function Markets() {
 
   return (
     <>
-      <StyledHeading>Markets</StyledHeading>
+      <StyledHeading>Markets {swapVersion.toUpperCase()}</StyledHeading>
       <PageWrapper gap="lg">
         <GreyCard padding="16px">
           <TYPE.body>

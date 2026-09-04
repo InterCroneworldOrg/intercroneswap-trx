@@ -1,4 +1,5 @@
 import TronWeb from 'tronweb';
+import { getActiveSwapVersion } from './swapVersion';
 
 export const TRON_CHAIN_IDS = {
   mainnet: 11111,
@@ -32,7 +33,16 @@ export function evmAddressToTronAddress(address: string): string {
   return TronWeb.address.fromHex(`41${address.replace(/^0x/, '')}`);
 }
 
+const TRON_V1_MAINNET_CONTRACTS = {
+  router: 'TXjGFNPUrHDcN8Gp5aGMN6Cr3PUtBHwzrW',
+  factory: 'TJL9Tj2rf5WPUkaYMzbvWErn6M8wYRiHG7',
+  multicall: TRON_CONTRACTS[TRON_CHAIN_IDS.mainnet].multicall,
+};
+
 export function getTronContracts(chainId: number): { router: string; multicall: string; factory?: string } {
+  if (chainId === TRON_CHAIN_IDS.mainnet && getActiveSwapVersion() === 'v1') {
+    return TRON_V1_MAINNET_CONTRACTS;
+  }
   return TRON_CONTRACTS[chainId] ?? TRON_CONTRACTS[TRON_CHAIN_IDS.mainnet];
 }
 
