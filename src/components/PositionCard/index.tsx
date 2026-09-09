@@ -386,9 +386,11 @@ export default function FullPositionCard({ pair, border }: PositionCardProps) {
                 {/* <ButtonSecondary padding="8px" borderRadius="8px"> */}
                 <ExternalLink
                   style={{ marginTop: '10px', width: '100%', textAlign: 'center', color: '#fff' }}
-                  href={`#/add/${isCurrency0ETH ? ETHER.symbol : pair.token0.address}/${
-                    isCurrency1ETH ? ETHER.symbol : pair.token1.address
-                  }`}
+                  href={`#${versionedPath(
+                    `/add/${isCurrency0ETH ? ETHER.symbol : pair.token0.address}/${
+                      isCurrency1ETH ? ETHER.symbol : pair.token1.address
+                    }`,
+                  )}`}
                 >
                   <div style={{ display: 'flex', alignItems: 'center' }}>
                     Get {currency0.symbol} - {currency1.symbol} LP

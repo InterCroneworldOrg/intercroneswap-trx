@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { Navbar, Container, Nav } from 'react-bootstrap';
 import Style from '../../styles/header.module.css';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import styled from 'styled-components';
 import Logo from '../../assets/images/ISwap.svg';
 import { useActiveWeb3React } from '../../hooks';
@@ -18,7 +18,7 @@ import Blockchains from '../Blockchains';
 import { useV1Access } from '../../hooks/useVersionAccess';
 import {
   getActiveSwapVersion,
-  getUnversionedPath,
+  getSwapVersionFromPath,
   setActiveSwapVersion,
   SwapVersion,
   versionedPath,
@@ -124,31 +124,31 @@ const AccountElement = styled.div<{ active: boolean }>`
 `;
 
 export default function Header() {
+  const location = useLocation();
   const { account } = useActiveWeb3React();
   const [dropshow, setDropShow] = useState(false);
   const [toggle, setToggle] = useState(false);
   const { enabled: v1Enabled, loading: accessLoading } = useV1Access(account);
-  const activeVersion = getActiveSwapVersion();
+  const activeVersion = getSwapVersionFromPath(location.pathname) || getActiveSwapVersion();
 
-  useEffect(() => {
-    if (!accessLoading && activeVersion === 'v1' && !v1Enabled) {
-      setActiveSwapVersion('v2');
-      window.location.replace(
-        `${window.location.pathname}${window.location.search}#${versionedPath(
-          getUnversionedPath(window.location.hash.replace(/^#/, '').split('?')[0]),
-          'v2',
-        )}`,
-      );
-    }
-  }, [accessLoading, activeVersion, v1Enabled]);
-
-  const selectVersion = (version: SwapVersion) => {
-    if (version === activeVersion || (version === 'v1' && !v1Enabled)) return;
+  const replaceVersionAndReload = useCallback((version: SwapVersion) => {
     setActiveSwapVersion(version);
     const currentHash = window.location.hash.replace(/^#/, '');
     const [path, query] = currentHash.split('?');
     const target = `${versionedPath(path || '/swap', version)}${query ? `?${query}` : ''}`;
-    window.location.replace(`${window.location.pathname}${window.location.search}#${target}`);
+    window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}#${target}`);
+    window.location.reload();
+  }, []);
+
+  useEffect(() => {
+    if (!accessLoading && activeVersion === 'v1' && !v1Enabled) {
+      replaceVersionAndReload('v2');
+    }
+  }, [accessLoading, activeVersion, replaceVersionAndReload, v1Enabled]);
+
+  const selectVersion = (version: SwapVersion) => {
+    if (version === activeVersion || (version === 'v1' && !v1Enabled)) return;
+    replaceVersionAndReload(version);
   };
 
   const versionToggle = () =>
@@ -253,7 +253,10 @@ export default function Header() {
                 <img width={'115px'} src={Logo} alt="logo" />
               </Navbar.Brand>
               <Navbar.Toggle aria-controls="basic-navbar-nav" />
-              <Navbar.Collapse id="basic-navbar-nav">{headerLinks()}</Navbar.Collapse>
+              <Navbar.Collapse id="basic-navbar-nav">
+                {versionToggle()}
+                {headerLinks()}
+              </Navbar.Collapse>
             </AutoRow>
             <AutoRow justify="space-between">{links()}</AutoRow>
           </Container>
