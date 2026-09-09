@@ -141,10 +141,10 @@ export default function Header() {
   }, []);
 
   useEffect(() => {
-    if (!accessLoading && activeVersion === 'v1' && !v1Enabled) {
+    if (account && !accessLoading && activeVersion === 'v1' && !v1Enabled) {
       replaceVersionAndReload('v2');
     }
-  }, [accessLoading, activeVersion, replaceVersionAndReload, v1Enabled]);
+  }, [accessLoading, account, activeVersion, replaceVersionAndReload, v1Enabled]);
 
   const selectVersion = (version: SwapVersion) => {
     if (version === activeVersion || (version === 'v1' && !v1Enabled)) return;
