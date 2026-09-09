@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useState } from 'react';
 import styled from 'styled-components';
 import { ButtonSecondary } from '../../components/Button';
 import { GreyCard, LightCard } from '../../components/Card';
@@ -10,6 +10,7 @@ import { getActiveSwapVersion } from '../../swapVersion';
 import { getTokenLogoURL } from '../../utils/tokenLogo';
 import { tronAddressToEvmAddress } from '../../tron-config';
 import { useAllLists } from '../../state/lists/hooks';
+import { useV1MarketHolders, V1LpHolder } from '../../hooks/useV1MarketHolders';
 
 const PAGE_SIZE = 25;
 
@@ -190,6 +191,56 @@ const Pagination = styled.div`
   width: 100%;
 `;
 
+const HolderPanel = styled.div`
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  background: ${({ theme }) => theme.bg2};
+  border-radius: 12px;
+`;
+
+const HolderSummary = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  color: ${({ theme }) => theme.text2};
+  font-size: 12px;
+`;
+
+const HolderRow = styled.div`
+  display: grid;
+  grid-template-columns: minmax(150px, 1fr) auto auto;
+  gap: 12px;
+  align-items: center;
+  padding-top: 8px;
+  border-top: 1px solid ${({ theme }) => theme.bg3};
+  font-size: 12px;
+
+  @media (max-width: 640px) {
+    grid-template-columns: 1fr auto;
+
+    span:first-child {
+      grid-column: 1 / -1;
+      overflow-wrap: anywhere;
+    }
+  }
+`;
+
+const CompactButton = styled(ButtonSecondary)`
+  width: auto;
+  min-width: 92px;
+  padding: 8px 12px;
+`;
+
+const StakerList = styled.div`
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 6px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: ${({ theme }) => theme.bg1};
+`;
+
 function numberValue(value?: string | null): number | undefined {
   if (value === undefined || value === null) return undefined;
   const parsed = Number(value);
@@ -284,11 +335,107 @@ function MarketIdentity({ market }: { market: MarketOverview }) {
   );
 }
 
+function holderLabel(holder: V1LpHolder): string {
+  if (holder.contract_role === 'staking') return 'Staking contract';
+  return holder.holder_type === 'smart_contract' ? 'Smart contract' : 'Wallet';
+}
+
+function FarmStakers({ farmAddress }: { farmAddress: string }) {
+  const [stakers, setStakers] = useState<Array<{ wallet_address: string; staked_raw?: string; earned_raw?: string }>>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string>();
+
+  useEffect(() => {
+    const controller = new AbortController();
+    const apiBase = (process.env.REACT_APP_MARKETS_API_URL || '/markets-api').replace(/\/$/, '');
+    fetch(`${apiBase}/api/v1/staking/${encodeURIComponent(farmAddress)}/stakers`, {
+      signal: controller.signal,
+      headers: { Accept: 'application/json' },
+    })
+      .then(async (response) => {
+        const body = await response.json();
+        if (!response.ok) throw new Error(body.error || `Staker request failed (${response.status})`);
+        return body;
+      })
+      .then((body) => setStakers(Array.isArray(body.stakers) ? body.stakers : []))
+      .catch((requestError: Error) => {
+        if (requestError.name !== 'AbortError') setError(requestError.message);
+      })
+      .finally(() => setLoading(false));
+    return () => controller.abort();
+  }, [farmAddress]);
+
+  return (
+    <StakerList>
+      {loading && <TYPE.small>Loading verified stakers…</TYPE.small>}
+      {error && <TYPE.small color="error">{error}</TYPE.small>}
+      {!loading && !error && stakers.map((staker) => (
+        <HolderRow key={staker.wallet_address}>
+          <AddressLink href={`https://tronscan.org/address/${staker.wallet_address}`} target="_blank" rel="noopener noreferrer">
+            {staker.wallet_address}
+          </AddressLink>
+          <span>Staked LP: {formatToken(String(Number(staker.staked_raw || '0') / 1e18))}</span>
+          <span>Reward raw: {staker.earned_raw || '0'}</span>
+        </HolderRow>
+      ))}
+      {!loading && !error && !stakers.length && <TYPE.small>No current stake or reward balance found.</TYPE.small>}
+    </StakerList>
+  );
+}
+
+function MarketHolders({ pairAddress }: { pairAddress: string }) {
+  const { holders, total, loading, error, refresh } = useV1MarketHolders(pairAddress);
+  const wallets = holders.filter((holder) => holder.holder_type === 'wallet').length;
+  const contracts = holders.filter((holder) => holder.holder_type === 'smart_contract').length;
+  const [openFarm, setOpenFarm] = useState<string>();
+  return (
+    <HolderPanel>
+      <HolderSummary>
+        <span>{total} holders</span>
+        <span>{wallets} wallets shown</span>
+        <span>{contracts} contracts shown</span>
+        <span>Balances are reconstructed from confirmed LP transfers.</span>
+      </HolderSummary>
+      {loading && <TYPE.small>Loading LP holders…</TYPE.small>}
+      {error && (
+        <TYPE.small color="error">
+          {error} <button onClick={refresh}>Retry</button>
+        </TYPE.small>
+      )}
+      {!loading && !error && holders.map((holder) => (
+        <HolderRow key={holder.holder_address}>
+          <span>
+            <AddressLink
+              href={`https://tronscan.org/${holder.holder_type === 'smart_contract' ? 'contract' : 'address'}/${holder.holder_address}`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              {holder.holder_address}
+            </AddressLink>
+          </span>
+          <span>
+            {holderLabel(holder)}{holder.staker_count !== undefined ? ` · ${holder.staker_count} stakers` : ''}
+            {holder.contract_role === 'staking' && (
+              <button onClick={() => setOpenFarm((value) => value === holder.holder_address ? undefined : holder.holder_address)}>
+                {openFarm === holder.holder_address ? 'Hide' : 'Show'}
+              </button>
+            )}
+          </span>
+          <span>{(holder.percentage || 0).toFixed(4)}%</span>
+          {openFarm === holder.holder_address && <FarmStakers farmAddress={holder.holder_address} />}
+        </HolderRow>
+      ))}
+      {!loading && !error && !holders.length && <TYPE.small>Holder indexing has not completed for this market yet.</TYPE.small>}
+    </HolderPanel>
+  );
+}
+
 export default function Markets() {
   const swapVersion = getActiveSwapVersion();
   const { markets, state, loading, error, refresh } = useMarketOverview();
   const [query, setQuery] = useState('');
   const [page, setPage] = useState(0);
+  const [openHolders, setOpenHolders] = useState<string>();
 
   const filtered = useMemo(() => {
     const needle = query.trim().toLowerCase();
@@ -352,10 +499,12 @@ export default function Markets() {
                         <th>Price 1</th>
                         <th>Price 2</th>
                         <th>TVL (estimated)</th>
+                        {swapVersion === 'v1' && <th>LP holders</th>}
                       </tr>
                     </thead>
                     <tbody>
                       {visibleMarkets.map((market) => (
+                        <Fragment key={market.pair_address}>
                         <tr key={market.pair_address}>
                           <td>
                             <MarketIdentity market={market} />
@@ -372,11 +521,24 @@ export default function Markets() {
                             {formatUsd(market.tvl_usd)}
                             {market.tvl_usd && <Estimate> est.</Estimate>}
                           </td>
+                          {swapVersion === 'v1' && (
+                            <td>
+                              <CompactButton onClick={() => setOpenHolders((value) => value === market.pair_address ? undefined : market.pair_address)}>
+                                {openHolders === market.pair_address ? 'Close' : 'Analyze'}
+                              </CompactButton>
+                            </td>
+                          )}
                         </tr>
+                        {swapVersion === 'v1' && openHolders === market.pair_address && (
+                          <tr key={`${market.pair_address}-holders`}>
+                            <td colSpan={7}><MarketHolders pairAddress={market.pair_address} /></td>
+                          </tr>
+                        )}
+                        </Fragment>
                       ))}
                       {!visibleMarkets.length && (
                         <tr>
-                          <td colSpan={6}>No markets found.</td>
+                          <td colSpan={swapVersion === 'v1' ? 7 : 6}>No markets found.</td>
                         </tr>
                       )}
                     </tbody>
@@ -415,6 +577,14 @@ export default function Markets() {
                       {market.tvl_usd && <Estimate> est.</Estimate>}
                     </span>
                   </MobileValueRow>
+                  {swapVersion === 'v1' && (
+                    <>
+                      <CompactButton onClick={() => setOpenHolders((value) => value === market.pair_address ? undefined : market.pair_address)}>
+                        {openHolders === market.pair_address ? 'Close LP holders' : 'Analyze LP holders'}
+                      </CompactButton>
+                      {openHolders === market.pair_address && <MarketHolders pairAddress={market.pair_address} />}
+                    </>
+                  )}
                 </MobileMarketCard>
               ))}
               {!visibleMarkets.length && (
