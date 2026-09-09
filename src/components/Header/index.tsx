@@ -11,11 +11,10 @@ import PriceCard from '../PriceCard';
 import { isMobile } from '../../theme';
 import downarrow from '../../assets/images/downarrow.png';
 import uparrow from '../../assets/images/uparrow.png';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 
 import { Box } from 'rebass';
 import Blockchains from '../Blockchains';
-import { useV1Access } from '../../hooks/useVersionAccess';
 import {
   getActiveSwapVersion,
   getSwapVersionFromPath,
@@ -128,7 +127,6 @@ export default function Header() {
   const { account } = useActiveWeb3React();
   const [dropshow, setDropShow] = useState(false);
   const [toggle, setToggle] = useState(false);
-  const { enabled: v1Enabled, loading: accessLoading } = useV1Access(account);
   const activeVersion = getSwapVersionFromPath(location.pathname) || getActiveSwapVersion();
 
   const replaceVersionAndReload = useCallback((version: SwapVersion) => {
@@ -140,28 +138,21 @@ export default function Header() {
     window.location.reload();
   }, []);
 
-  useEffect(() => {
-    if (account && !accessLoading && activeVersion === 'v1' && !v1Enabled) {
-      replaceVersionAndReload('v2');
-    }
-  }, [accessLoading, account, activeVersion, replaceVersionAndReload, v1Enabled]);
-
   const selectVersion = (version: SwapVersion) => {
-    if (version === activeVersion || (version === 'v1' && !v1Enabled)) return;
+    if (version === activeVersion) return;
     replaceVersionAndReload(version);
   };
 
-  const versionToggle = () =>
-    account && v1Enabled ? (
-      <VersionToggle title="Select InterCrone Swap version">
-        <VersionButton active={activeVersion === 'v2'} onClick={() => selectVersion('v2')}>
-          V2
-        </VersionButton>
-        <VersionButton active={activeVersion === 'v1'} onClick={() => selectVersion('v1')}>
-          V1
-        </VersionButton>
-      </VersionToggle>
-    ) : null;
+  const versionToggle = () => (
+    <VersionToggle title="Select InterCrone Swap version">
+      <VersionButton active={activeVersion === 'v2'} onClick={() => selectVersion('v2')}>
+        V2
+      </VersionButton>
+      <VersionButton active={activeVersion === 'v1'} onClick={() => selectVersion('v1')}>
+        V1
+      </VersionButton>
+    </VersionToggle>
+  );
 
   const changeHamIcon = () => {
     setToggle(!toggle);

@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useState } from 'react';
-import { useActiveWeb3React } from './index';
 import { getActiveSwapVersion } from '../swapVersion';
 
 export interface MarketOverview {
@@ -51,7 +50,6 @@ export function useMarketOverview(): {
   error?: string;
   refresh: () => void;
 } {
-  const { account } = useActiveWeb3React();
   const version = getActiveSwapVersion();
   const [markets, setMarkets] = useState<MarketOverview[]>([]);
   const [state, setState] = useState<MarketOverviewResponse['state']>();
@@ -64,15 +62,8 @@ export function useMarketOverview(): {
     const controller = new AbortController();
     setLoading(true);
     setError(undefined);
-    if (version === 'v1' && !account) {
-      setMarkets([]);
-      setLoading(false);
-      setError('Connect the approved wallet to view V1 markets.');
-      return () => controller.abort();
-    }
-    const endpoint = version === 'v1'
-      ? `${API_BASE_URL}/api/v1/market-overview?wallet=${encodeURIComponent(account || '')}`
-      : `${API_BASE_URL}/api/market-overview`;
+    const endpoint =
+      version === 'v1' ? `${API_BASE_URL}/api/v1/market-overview` : `${API_BASE_URL}/api/market-overview`;
     fetch(endpoint, {
       signal: controller.signal,
       headers: { Accept: 'application/json' },
@@ -87,7 +78,7 @@ export function useMarketOverview(): {
       })
       .finally(() => setLoading(false));
     return () => controller.abort();
-  }, [account, revision, version]);
+  }, [revision, version]);
 
   return { markets, state, loading, error, refresh };
 }
