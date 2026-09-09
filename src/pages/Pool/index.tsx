@@ -18,7 +18,7 @@ import { StyledHeading } from '../App';
 import { useWalletLiquidityRegistry } from '../../hooks/useMarketRegistry';
 import { tronAddressToEvmAddress } from '../../tron-config';
 import { useAllTokens } from '../../hooks/Tokens';
-import { getActiveSwapVersion } from '../../swapVersion';
+import { getActiveSwapVersion, versionedPath } from '../../swapVersion';
 
 const PageWrapper = styled(AutoColumn)`
   max-width: 840px;
@@ -185,10 +185,10 @@ export default function Pool() {
           ) : (
             <AutoColumn>
               <AutoRow gap={'20px'} style={{ margin: 0 }} justify="space-between" id="liqimp">
-                <StyledInternalLink to="/add/TRX" style={{ flexGrow: 1, width: 'auto' }}>
+                <StyledInternalLink to={versionedPath('/add/TRX')} style={{ flexGrow: 1, width: 'auto' }}>
                   <Button>Add Liquidity</Button>
                 </StyledInternalLink>
-                <StyledInternalLink style={{ flexGrow: 1, width: 'auto' }} to="/find">
+                <StyledInternalLink style={{ flexGrow: 1, width: 'auto' }} to={versionedPath('/find')}>
                   <Button>Import</Button>
                 </StyledInternalLink>
               </AutoRow>
@@ -204,10 +204,15 @@ export default function Pool() {
                     </TYPE.mediumHeader>
                   </HideSmall>
                   <ButtonRow style={{ display: 'none' }}>
-                    <ResponsiveButtonSecondary as={Link} padding="6px 8px" to="/create/TRX">
+                    <ResponsiveButtonSecondary as={Link} padding="6px 8px" to={versionedPath('/create/TRX')}>
                       Create a pair
                     </ResponsiveButtonSecondary>
-                    <ResponsiveButtonPrimary id="join-pool-button" as={Link} padding="6px 8px" to="/add/TRX">
+                    <ResponsiveButtonPrimary
+                      id="join-pool-button"
+                      as={Link}
+                      padding="6px 8px"
+                      to={versionedPath('/add/TRX')}
+                    >
                       <TYPE.white fontWeight={500} fontSize={16}>
                         Add Liquidity
                       </TYPE.white>

@@ -29,6 +29,7 @@ import { useTransactionAdder } from '../../state/transactions/hooks';
 import { StyledInternalLink, TYPE } from '../../theme';
 import { /*calculateGasMargin,*/ calculateSlippageAmount, getRouterContract } from '../../utils';
 import { currencyId } from '../../utils/currencyId';
+import { versionedPath } from '../../swapVersion';
 // import useDebouncedChangeHandler from '../../utils/useDebouncedChangeHandler';
 import { wrappedCurrency } from '../../utils/wrappedCurrency';
 import AppBody, { Container } from '../AppBody';
@@ -397,9 +398,9 @@ export default function RemoveLiquidity({
   const handleSelectCurrencyA = useCallback(
     (currency: Currency) => {
       if (currencyIdB && currencyId(currency) === currencyIdB) {
-        history.push(`/remove/${currencyId(currency)}/${currencyIdA}`);
+        history.push(versionedPath(`/remove/${currencyId(currency)}/${currencyIdA}`));
       } else {
-        history.push(`/remove/${currencyId(currency)}/${currencyIdB}`);
+        history.push(versionedPath(`/remove/${currencyId(currency)}/${currencyIdB}`));
       }
     },
     [currencyIdA, currencyIdB, history],
@@ -407,9 +408,9 @@ export default function RemoveLiquidity({
   const handleSelectCurrencyB = useCallback(
     (currency: Currency) => {
       if (currencyIdA && currencyId(currency) === currencyIdA) {
-        history.push(`/remove/${currencyIdB}/${currencyId(currency)}`);
+        history.push(versionedPath(`/remove/${currencyIdB}/${currencyId(currency)}`));
       } else {
-        history.push(`/remove/${currencyIdA}/${currencyId(currency)}`);
+        history.push(versionedPath(`/remove/${currencyIdA}/${currencyId(currency)}`));
       }
     },
     [currencyIdA, currencyIdB, history],
@@ -457,7 +458,9 @@ export default function RemoveLiquidity({
                   <ColumnCenter style={{ gap: '14px', padding: '18px 0' }}>
                     <Loader size="32px" />
                     <TYPE.white fontWeight={500}>Loading current pool data…</TYPE.white>
-                    <TYPE.small color="text2">Fetching reserves and your latest LP balance from the blockchain.</TYPE.small>
+                    <TYPE.small color="text2">
+                      Fetching reserves and your latest LP balance from the blockchain.
+                    </TYPE.small>
                   </ColumnCenter>
                 </LightCard>
               )}
@@ -556,17 +559,21 @@ export default function RemoveLiquidity({
                   <RowBetween style={{ justifyContent: 'flex-end' }}>
                     {oneCurrencyIsETH ? (
                       <StyledInternalLink
-                        to={`/remove/${currencyA === ETHER ? WETH[chainId].address : currencyIdA}/${
-                          currencyB === ETHER ? WETH[chainId].address : currencyIdB
-                        }`}
+                        to={versionedPath(
+                          `/remove/${currencyA === ETHER ? WETH[chainId].address : currencyIdA}/${
+                            currencyB === ETHER ? WETH[chainId].address : currencyIdB
+                          }`,
+                        )}
                       >
                         <TYPE.white color={theme.primary3}> Receive WTRX</TYPE.white>
                       </StyledInternalLink>
                     ) : oneCurrencyIsWETH ? (
                       <StyledInternalLink
-                        to={`/remove/${currencyA && currencyEquals(currencyA, WETH[chainId]) ? 'TRX' : currencyIdA}/${
-                          currencyB && currencyEquals(currencyB, WETH[chainId]) ? 'TRX' : currencyIdB
-                        }`}
+                        to={versionedPath(
+                          `/remove/${currencyA && currencyEquals(currencyA, WETH[chainId]) ? 'TRX' : currencyIdA}/${
+                            currencyB && currencyEquals(currencyB, WETH[chainId]) ? 'TRX' : currencyIdB
+                          }`,
+                        )}
                       >
                         <TYPE.white color={theme.primary3}>Receive TRX</TYPE.white>
                       </StyledInternalLink>

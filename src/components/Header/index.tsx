@@ -16,7 +16,13 @@ import { useCallback, useEffect, useState } from 'react';
 import { Box } from 'rebass';
 import Blockchains from '../Blockchains';
 import { useV1Access } from '../../hooks/useVersionAccess';
-import { getActiveSwapVersion, setActiveSwapVersion, SwapVersion } from '../../swapVersion';
+import {
+  getActiveSwapVersion,
+  getUnversionedPath,
+  setActiveSwapVersion,
+  SwapVersion,
+  versionedPath,
+} from '../../swapVersion';
 
 const Row = styled(Box)<{ align?: string; padding?: string; border?: string; borderRadius?: string }>`
   display: flex;
@@ -71,7 +77,6 @@ export const AutoRow = styled(Row)<{ gap?: string; justify?: string }>`
     }
   }
 `;
-
 
 const VersionToggle = styled.div`
   display: inline-flex;
@@ -128,21 +133,33 @@ export default function Header() {
   useEffect(() => {
     if (!accessLoading && activeVersion === 'v1' && !v1Enabled) {
       setActiveSwapVersion('v2');
-      window.location.reload();
+      window.location.replace(
+        `${window.location.pathname}${window.location.search}#${versionedPath(
+          getUnversionedPath(window.location.hash.replace(/^#/, '').split('?')[0]),
+          'v2',
+        )}`,
+      );
     }
   }, [accessLoading, activeVersion, v1Enabled]);
 
   const selectVersion = (version: SwapVersion) => {
     if (version === activeVersion || (version === 'v1' && !v1Enabled)) return;
     setActiveSwapVersion(version);
-    window.location.reload();
+    const currentHash = window.location.hash.replace(/^#/, '');
+    const [path, query] = currentHash.split('?');
+    const target = `${versionedPath(path || '/swap', version)}${query ? `?${query}` : ''}`;
+    window.location.replace(`${window.location.pathname}${window.location.search}#${target}`);
   };
 
   const versionToggle = () =>
     account && v1Enabled ? (
       <VersionToggle title="Select InterCrone Swap version">
-        <VersionButton active={activeVersion === 'v2'} onClick={() => selectVersion('v2')}>V2</VersionButton>
-        <VersionButton active={activeVersion === 'v1'} onClick={() => selectVersion('v1')}>V1</VersionButton>
+        <VersionButton active={activeVersion === 'v2'} onClick={() => selectVersion('v2')}>
+          V2
+        </VersionButton>
+        <VersionButton active={activeVersion === 'v1'} onClick={() => selectVersion('v1')}>
+          V1
+        </VersionButton>
       </VersionToggle>
     ) : null;
 
@@ -181,16 +198,16 @@ export default function Header() {
   const links = useCallback(() => {
     return (
       <>
-        <Link to="/swap" className={`${Style.link} nav-link`}>
+        <Link to={versionedPath('/swap')} className={`${Style.link} nav-link`}>
           Exchange
         </Link>
-        <Link to="/pool" className={`${Style.link} nav-link`}>
+        <Link to={versionedPath('/pool')} className={`${Style.link} nav-link`}>
           Liquidity
         </Link>
-        <Link to="/markets" className={`${Style.link} nav-link`}>
+        <Link to={versionedPath('/markets')} className={`${Style.link} nav-link`}>
           Markets
         </Link>
-        <Link to="/farms" className={`${Style.link} nav-link`}>
+        <Link to={versionedPath('/farms')} className={`${Style.link} nav-link`}>
           Farms
         </Link>
       </>

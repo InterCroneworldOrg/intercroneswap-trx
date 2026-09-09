@@ -39,6 +39,8 @@ export function useApproveCallback(
     setInteractiveAllowanceRaw(undefined);
     setInteractiveCheckFailed(false);
     if (!confirmedApproval || !token || !account || !spender || !amountToApproveRaw) return () => controller.abort();
+    const approvedToken = token;
+    const requiredAmountRaw = amountToApproveRaw;
 
     const apiBase = (process.env.REACT_APP_MARKETS_API_URL || '/markets-api').replace(/\/$/, '');
     const params = new URLSearchParams({
@@ -58,7 +60,7 @@ export function useApproveCallback(
           const body = await response.json();
           const raw = String(body.allowance_raw ?? '0');
           setInteractiveAllowanceRaw(raw);
-          if (!new TokenAmount(token, raw).lessThan(new TokenAmount(token, amountToApproveRaw))) return;
+          if (!new TokenAmount(approvedToken, raw).lessThan(new TokenAmount(approvedToken, requiredAmountRaw))) return;
           if (attempt < 4) await new Promise((resolve) => window.setTimeout(resolve, 1000));
         }
       } catch (error: any) {
@@ -92,7 +94,16 @@ export function useApproveCallback(
         ? ApprovalState.PENDING
         : ApprovalState.NOT_APPROVED
       : ApprovalState.APPROVED;
-  }, [amountToApprove, confirmedApproval, currentAllowance, interactiveAllowanceRaw, interactiveCheckFailed, pendingApproval, spender, token]);
+  }, [
+    amountToApprove,
+    confirmedApproval,
+    currentAllowance,
+    interactiveAllowanceRaw,
+    interactiveCheckFailed,
+    pendingApproval,
+    spender,
+    token,
+  ]);
 
   const tokenContract = useTokenContract(token?.address);
   const addTransaction = useTransactionAdder();

@@ -10,6 +10,7 @@ import { useActiveWeb3React } from '../../hooks';
 import { useCachedLiquidityTokenBalance } from '../../state/wallet/hooks';
 import { Divider, ExternalLink, TYPE } from '../../theme';
 import { currencyId } from '../../utils/currencyId';
+import { versionedPath } from '../../swapVersion';
 import { unwrappedToken } from '../../utils/wrappedCurrency';
 import {
   ButtonPrimary,
@@ -315,7 +316,7 @@ export default function FullPositionCard({ pair, border }: PositionCardProps) {
                   padding="8px"
                   borderRadius="8px"
                   as={Link}
-                  to={`/add/${currencyId(currency0)}/${currencyId(currency1)}`}
+                  to={versionedPath(`/add/${currencyId(currency0)}/${currencyId(currency1)}`)}
                   width="48%"
                   style={{ color: '#000' }}
                 >
@@ -327,7 +328,7 @@ export default function FullPositionCard({ pair, border }: PositionCardProps) {
                   as={Link}
                   width="48%"
                   style={{ color: '#000' }}
-                  to={`/remove/${currencyId(currency0)}/${currencyId(currency1)}`}
+                  to={versionedPath(`/remove/${currencyId(currency0)}/${currencyId(currency1)}`)}
                 >
                   Remove
                 </ButtonPrimary>

@@ -6,6 +6,7 @@ import { NavLink, Link as HistoryLink } from 'react-router-dom';
 import { ArrowLeft } from 'react-feather';
 import { RowBetween } from '../Row';
 import QuestionHelper from '../QuestionHelper';
+import { versionedPath } from '../../swapVersion';
 
 export const Tabs = styled.div`
   ${({ theme }) => theme.flexRowNoWrap}
@@ -65,10 +66,10 @@ export function SwapPoolTabs({ active }: { active: 'swap' | 'pool' }) {
   const { t } = useTranslation();
   return (
     <Tabs style={{ marginBottom: '20px' }}>
-      <StyledNavLink id={`swap-nav-link`} to={'/swap'} isActive={() => active === 'swap'}>
+      <StyledNavLink id={`swap-nav-link`} to={versionedPath('/swap')} isActive={() => active === 'swap'}>
         {t('Exchange')}
       </StyledNavLink>
-      <StyledNavLink id={`pool-nav-link`} to={'/pool'} isActive={() => active === 'pool'}>
+      <StyledNavLink id={`pool-nav-link`} to={versionedPath('/pool')} isActive={() => active === 'pool'}>
         {t('Liquidity')}
       </StyledNavLink>
     </Tabs>
@@ -79,7 +80,7 @@ export function FindPoolTabs() {
   return (
     <Tabs>
       <RowBetween style={{ padding: '1rem' }}>
-        <HistoryLink to="/pool">
+        <HistoryLink to={versionedPath('/pool')}>
           <StyledArrowLeft />
         </HistoryLink>
         <ActiveText>Import Pool</ActiveText>
@@ -93,7 +94,7 @@ export function AddRemoveTabs({ adding, creating }: { adding: boolean; creating:
   return (
     <Tabs>
       <RowBetween style={{ padding: '1rem' }}>
-        <HistoryLink to="/pool">
+        <HistoryLink to={versionedPath('/pool')}>
           <StyledArrowLeft />
         </HistoryLink>
         <ActiveText>{creating ? 'Create a pair' : adding ? 'Add Liquidity' : 'Remove Liquidity'}</ActiveText>

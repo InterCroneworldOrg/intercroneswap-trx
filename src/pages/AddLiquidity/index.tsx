@@ -36,6 +36,7 @@ import AppBody, { Container } from '../AppBody';
 import { Dots, Wrapper } from '../Pool/styleds';
 import { ConfirmAddModalBottom } from './ConfirmAddModalBottom';
 import { currencyId } from '../../utils/currencyId';
+import { versionedPath } from '../../swapVersion';
 import { PoolPriceBar } from './PoolPriceBar';
 import CurrencyLogo from '../../components/CurrencyLogo';
 
@@ -305,9 +306,9 @@ export default function AddLiquidity({
     (currencyA: Currency) => {
       const newCurrencyIdA = currencyId(currencyA);
       if (newCurrencyIdA === currencyIdB) {
-        history.push(`/add/${currencyIdB}/${currencyIdA}`);
+        history.push(versionedPath(`/add/${currencyIdB}/${currencyIdA}`));
       } else {
-        history.push(`/add/${newCurrencyIdA}/${currencyIdB}`);
+        history.push(versionedPath(`/add/${newCurrencyIdA}/${currencyIdB}`));
       }
     },
     [currencyIdB, history, currencyIdA],
@@ -317,12 +318,12 @@ export default function AddLiquidity({
       const newCurrencyIdB = currencyId(currencyB);
       if (currencyIdA === newCurrencyIdB) {
         if (currencyIdB) {
-          history.push(`/add/${currencyIdB}/${newCurrencyIdB}`);
+          history.push(versionedPath(`/add/${currencyIdB}/${newCurrencyIdB}`));
         } else {
-          history.push(`/add/${newCurrencyIdB}`);
+          history.push(versionedPath(`/add/${newCurrencyIdB}`));
         }
       } else {
-        history.push(`/add/${currencyIdA ? currencyIdA : 'TRX'}/${newCurrencyIdB}`);
+        history.push(versionedPath(`/add/${currencyIdA ? currencyIdA : 'TRX'}/${newCurrencyIdB}`));
       }
     },
     [currencyIdA, history, currencyIdB],

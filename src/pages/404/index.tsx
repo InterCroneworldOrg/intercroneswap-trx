@@ -2,6 +2,7 @@ import '../../styles/404.scss';
 import { Container, Row, Col } from 'react-bootstrap';
 import NotFoundImg from '../../assets/images/notfound.png';
 import { Link } from 'react-router-dom';
+import { versionedPath } from '../../swapVersion';
 
 const NotFound: React.FC = () => {
   return (
@@ -12,10 +13,10 @@ const NotFound: React.FC = () => {
           <Col md={4}>
             <p>You can check out our other pages instead</p>
             <div className="redirectbtns">
-              <Link to="/swap">
+              <Link to={versionedPath('/swap')}>
                 <button>Exchange</button>
               </Link>
-              <Link to="/pool">
+              <Link to={versionedPath('/pool')}>
                 <button>Liquidity</button>
               </Link>
               <Link to="/stake">
