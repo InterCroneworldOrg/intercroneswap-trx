@@ -101,6 +101,7 @@ export default function Pool() {
   const registryPairs = useMemo(() => {
     if (!chainId) return [];
     return registryPositions.flatMap((position) => {
+      if (Number(position.lp_balance_raw || '0') <= 0) return [];
       try {
         const token0Address = tronAddressToEvmAddress(position.token0_address);
         const token1Address = tronAddressToEvmAddress(position.token1_address);
@@ -141,6 +142,14 @@ export default function Pool() {
     .filter(([state]) => state === PairState.EXISTS)
     .map(([, pair]) => pair)
     .filter((pair): pair is Pair => Boolean(pair));
+
+  const legacyStakedPositions = useMemo(
+    () =>
+      swapVersion === 'v1'
+        ? registryPositions.filter((position) => Number(position.staked_lp_balance_raw || '0') > 0)
+        : [],
+    [registryPositions, swapVersion],
+  );
 
   const toggleWalletModal = useWalletModalToggle();
 
@@ -247,6 +256,51 @@ export default function Pool() {
                 <>
                   {allV1PairsWithLiquidity.map((v1Pair) => (
                     <FullPositionCard key={v1Pair.liquidityToken.address} pair={v1Pair} />
+                  ))}
+                  {legacyStakedPositions.map((position) => (
+                    <GreyCard key={`${position.pair_address}-staked`} padding="14px">
+                      <RowBetween>
+                        <div>
+                          <TYPE.body fontWeight={600}>
+                            {position.token0_symbol} / {position.token1_symbol}
+                          </TYPE.body>
+                          <TYPE.small color={theme.text2}>Legacy V1 staking position</TYPE.small>
+                        </div>
+                        <div style={{ textAlign: 'right' }}>
+                          <TYPE.body>
+                            {(Number(position.staked_lp_balance_raw || '0') / 1e18).toLocaleString(undefined, {
+                              maximumFractionDigits: 8,
+                            })}{' '}
+                            LP
+                          </TYPE.body>
+                          <StyledInternalLink to={versionedPath('/farms')}>View staking details</StyledInternalLink>
+                        </div>
+                      </RowBetween>
+                    </GreyCard>
+                  ))}
+                </>
+              ) : legacyStakedPositions.length > 0 ? (
+                <>
+                  {legacyStakedPositions.map((position) => (
+                    <GreyCard key={`${position.pair_address}-staked`} padding="14px">
+                      <RowBetween>
+                        <div>
+                          <TYPE.body fontWeight={600}>
+                            {position.token0_symbol} / {position.token1_symbol}
+                          </TYPE.body>
+                          <TYPE.small color={theme.text2}>Legacy V1 staking position</TYPE.small>
+                        </div>
+                        <div style={{ textAlign: 'right' }}>
+                          <TYPE.body>
+                            {(Number(position.staked_lp_balance_raw || '0') / 1e18).toLocaleString(undefined, {
+                              maximumFractionDigits: 8,
+                            })}{' '}
+                            LP
+                          </TYPE.body>
+                          <StyledInternalLink to={versionedPath('/farms')}>View staking details</StyledInternalLink>
+                        </div>
+                      </RowBetween>
+                    </GreyCard>
                   ))}
                 </>
               ) : (
