@@ -12,6 +12,14 @@ export interface RegistryLiquidityPosition {
   token1_name: string;
   token1_decimals: number;
   lp_balance_raw: string;
+  staked_lp_balance_raw?: string;
+  staked_positions?: Array<{
+    farm_address: string;
+    staked_raw: string;
+    earned_raw: string;
+    exit_required?: boolean;
+    status?: string;
+  }>;
 }
 
 interface WalletLiquidityResponse {
