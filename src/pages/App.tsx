@@ -119,45 +119,24 @@ export default function App() {
           <Popups />
           <Web3ReactManager>
             <Switch>
-              <Route exact strict path="/:version(v1|v2)" component={LegacyRouteRedirect} />
-              <Route exact strict path="/:version(v1|v2)/swap" component={Swap} />
-              <Route exact strict path="/:version(v1|v2)/swap/:outputCurrency" component={RedirectToSwap} />
-              <Route exact strict path="/:version(v1|v2)/send" component={RedirectPathToSwapOnly} />
-              <Route exact strict path="/:version(v1|v2)/find" component={PoolFinder} />
-              <Route exact strict path="/:version(v1|v2)/pool" component={Pool} />
-              <Route exact strict path="/:version(v1|v2)/farms" component={Farms} />
-              <Route exact strict path="/:version(v1|v2)/markets" component={Markets} />
-              <Route exact strict path="/:version(v1|v2)/create" component={RedirectToAddLiquidity} />
-              <Route exact path="/:version(v1|v2)/add" component={AddLiquidity} />
-              <Route exact path="/:version(v1|v2)/add/:currencyIdA" component={RedirectOldAddLiquidityPathStructure} />
-              <Route
-                exact
-                path="/:version(v1|v2)/add/:currencyIdA/:currencyIdB"
-                component={RedirectDuplicateTokenIds}
-              />
-              <Route exact path="/:version(v1|v2)/create" component={AddLiquidity} />
-              <Route
-                exact
-                path="/:version(v1|v2)/create/:currencyIdA"
-                component={RedirectOldAddLiquidityPathStructure}
-              />
-              <Route
-                exact
-                path="/:version(v1|v2)/create/:currencyIdA/:currencyIdB"
-                component={RedirectDuplicateTokenIds}
-              />
-              <Route
-                exact
-                strict
-                path="/:version(v1|v2)/remove/:tokens"
-                component={RedirectOldRemoveLiquidityPathStructure}
-              />
-              <Route
-                exact
-                strict
-                path="/:version(v1|v2)/remove/:currencyIdA/:currencyIdB"
-                component={RemoveLiquidity}
-              />
+              <Route path="/v1" component={LegacyRouteRedirect} />
+              <Route exact strict path="/v2" component={LegacyRouteRedirect} />
+              <Route exact strict path="/v2/swap" component={Swap} />
+              <Route exact strict path="/v2/swap/:outputCurrency" component={RedirectToSwap} />
+              <Route exact strict path="/v2/send" component={RedirectPathToSwapOnly} />
+              <Route exact strict path="/v2/find" component={PoolFinder} />
+              <Route exact strict path="/v2/pool" component={Pool} />
+              <Route exact strict path="/v2/farms" component={Farms} />
+              <Route exact strict path="/v2/markets" component={Markets} />
+              <Route exact strict path="/v2/create" component={RedirectToAddLiquidity} />
+              <Route exact path="/v2/add" component={AddLiquidity} />
+              <Route exact path="/v2/add/:currencyIdA" component={RedirectOldAddLiquidityPathStructure} />
+              <Route exact path="/v2/add/:currencyIdA/:currencyIdB" component={RedirectDuplicateTokenIds} />
+              <Route exact path="/v2/create" component={AddLiquidity} />
+              <Route exact path="/v2/create/:currencyIdA" component={RedirectOldAddLiquidityPathStructure} />
+              <Route exact path="/v2/create/:currencyIdA/:currencyIdB" component={RedirectDuplicateTokenIds} />
+              <Route exact strict path="/v2/remove/:tokens" component={RedirectOldRemoveLiquidityPathStructure} />
+              <Route exact strict path="/v2/remove/:currencyIdA/:currencyIdB" component={RemoveLiquidity} />
               <Route
                 exact
                 path={[
