@@ -16,6 +16,8 @@ import { getContract } from '../../utils';
 import { getTokenLogoURL } from '../../utils/tokenLogo';
 import { StyledHeading } from '../App';
 
+// Keep the ended-farm presentation backed by registry data; only exit() is sent on-chain.
+
 const PageWrapper = styled(AutoColumn)`
   max-width: 1180px;
   width: 100%;
