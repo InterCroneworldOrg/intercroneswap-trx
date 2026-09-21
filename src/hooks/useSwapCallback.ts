@@ -209,8 +209,13 @@ export function useSwapCallback(
         let selectedCall: SwapCall | undefined;
         let simulationError: any;
         const simulationResults: Array<Record<string, unknown>> = [];
+        const diagnosticsEnabled = process.env.REACT_APP_SWAP_DIAGNOSTICS === 'true';
         const routerContract = swapCalls[0].contract;
         const route = trade.route.path.map((token) => token.address);
+
+        if (!diagnosticsEnabled) {
+          selectedCall = swapCalls[0];
+        } else {
         const diagnostics = {
           version: getActiveSwapVersion(),
           account,
@@ -458,6 +463,7 @@ export function useSwapCallback(
             .map((result) => `${result.methodName}: ${(result.error as any)?.reason || (result.error as any)?.nestedReason || (result.error as any)?.message || (result.error as any)?.nestedMessage || 'unknown error'}`)
             .join(' | ');
           throw new Error(`${swapErrorMessage(simulationError)} [${methods}]`);
+        }
         }
 
         const {
