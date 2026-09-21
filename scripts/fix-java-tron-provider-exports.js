@@ -34,6 +34,27 @@ const providerConversionsPath = path.join(
   'tron-eth-conversions',
   'index.js',
 );
+const tronLinkProviderMethodsPaths = [
+  path.join(
+    __dirname,
+    '..',
+    'node_modules',
+    '@intercroneswap',
+    'tronlink-provider',
+    'src',
+    'methods.js',
+  ),
+  path.join(
+    __dirname,
+    '..',
+    'node_modules',
+    '@intercroneswap',
+    'tronlink-provider',
+    'commonjs',
+    'lib',
+    'methods.js',
+  ),
+];
 
 function fixedExports() {
   return {
@@ -83,6 +104,28 @@ if (fs.existsSync(providerConversionsPath)) {
   if (validSource !== conversionsSource) {
     fs.writeFileSync(providerConversionsPath, validSource);
     console.log('[postinstall] Fixed invalid ESM syntax in the address helpers.');
+  }
+}
+
+for (const tronLinkProviderMethodsPath of tronLinkProviderMethodsPaths) {
+  if (!fs.existsSync(tronLinkProviderMethodsPath)) continue;
+
+  const methodsSource = fs.readFileSync(tronLinkProviderMethodsPath, 'utf8');
+  const mutableParamsSource = methodsSource
+    .replace(
+      'const txHash = await contract.methods[functionAbi.name](...fnParams).send(',
+      [
+        '// web3 returns Result arrays with read-only numeric properties. TronWeb',
+        '// normalizes address[] arguments in place, so pass it a plain deep copy.',
+        'const mutableFnParams = JSON.parse(JSON.stringify(fnParams));',
+        '',
+        'const txHash = await contract.methods[functionAbi.name](...mutableFnParams).send(',
+      ].join('\n'),
+    );
+
+  if (mutableParamsSource !== methodsSource) {
+    fs.writeFileSync(tronLinkProviderMethodsPath, mutableParamsSource);
+    console.log('[postinstall] Made decoded TronLink contract parameters mutable.');
   }
 }
 
