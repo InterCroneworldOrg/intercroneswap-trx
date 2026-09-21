@@ -1,6 +1,7 @@
 name: Docker Image GHCR dev3
 
 on:
+  workflow_dispatch:
   push:
     branches: [dev3]
   pull_request:
