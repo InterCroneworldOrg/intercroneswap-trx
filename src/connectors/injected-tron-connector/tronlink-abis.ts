@@ -6,13 +6,11 @@ import ERC20_ABI from '../../constants/abis/erc20.json';
 import { MULTICALL_ABI } from '../../constants/multicall';
 import Web3 from 'web3';
 import IntercroneswapRouterABI from '../../constants/abis/iswap-router.json';
-import IntercroneswapV1RouterABI from '../../constants/abis/iswap-v1-router.json';
 import ISwapV1PairABI from '../../constants/abis/iswap-pair.json';
 
 export const abis = [
   ...ERC20_ABI,
   ...IntercroneswapRouterABI,
-  ...IntercroneswapV1RouterABI,
   // ...IUniswapV2PairABI,
   // ...UNISOCKS_ABI,
   ...WETH_ABI,
