@@ -1,10 +1,10 @@
-name: Docker Image GHCR dev2
+name: Docker Image GHCR dev3
 
 on:
   push:
-    branches: [dev2]
+    branches: [dev3]
   pull_request:
-    branches: [dev2]
+    branches: [dev3]
 
 permissions:
   contents: read
@@ -36,8 +36,8 @@ jobs:
           file: ./Dockerfile
           push: ${{ github.event_name == 'push' }}
           tags: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:dev2
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:dev2-${{ github.sha }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:dev3
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:dev3-${{ github.sha }}
           build-args: |
             REACT_APP_CHAIN_ID=11111
             REACT_APP_NETWORK_URL=https://api.trongrid.io
