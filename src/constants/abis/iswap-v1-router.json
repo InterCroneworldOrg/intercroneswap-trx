@@ -230,5 +230,307 @@
     ],
     "stateMutability": "view",
     "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "name": "tokenA",
+        "type": "address"
+      },
+      {
+        "name": "tokenB",
+        "type": "address"
+      },
+      {
+        "name": "amountADesired",
+        "type": "uint256"
+      },
+      {
+        "name": "amountBDesired",
+        "type": "uint256"
+      },
+      {
+        "name": "amountAMin",
+        "type": "uint256"
+      },
+      {
+        "name": "amountBMin",
+        "type": "uint256"
+      },
+      {
+        "name": "to",
+        "type": "address"
+      },
+      {
+        "name": "deadline",
+        "type": "uint256"
+      }
+    ],
+    "name": "addLiquidity",
+    "outputs": [
+      {
+        "name": "amountA",
+        "type": "uint256"
+      },
+      {
+        "name": "amountB",
+        "type": "uint256"
+      },
+      {
+        "name": "liquidity",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "name": "token",
+        "type": "address"
+      },
+      {
+        "name": "amountTokenDesired",
+        "type": "uint256"
+      },
+      {
+        "name": "amountTokenMin",
+        "type": "uint256"
+      },
+      {
+        "name": "amountTRXMin",
+        "type": "uint256"
+      },
+      {
+        "name": "to",
+        "type": "address"
+      },
+      {
+        "name": "deadline",
+        "type": "uint256"
+      }
+    ],
+    "name": "addLiquidityTRX",
+    "outputs": [
+      {
+        "name": "amountToken",
+        "type": "uint256"
+      },
+      {
+        "name": "amountTRX",
+        "type": "uint256"
+      },
+      {
+        "name": "liquidity",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "payable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "name": "tokenA",
+        "type": "address"
+      },
+      {
+        "name": "tokenB",
+        "type": "address"
+      },
+      {
+        "name": "liquidity",
+        "type": "uint256"
+      },
+      {
+        "name": "amountAMin",
+        "type": "uint256"
+      },
+      {
+        "name": "amountBMin",
+        "type": "uint256"
+      },
+      {
+        "name": "to",
+        "type": "address"
+      },
+      {
+        "name": "deadline",
+        "type": "uint256"
+      }
+    ],
+    "name": "removeLiquidity",
+    "outputs": [
+      {
+        "name": "amountA",
+        "type": "uint256"
+      },
+      {
+        "name": "amountB",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "name": "token",
+        "type": "address"
+      },
+      {
+        "name": "liquidity",
+        "type": "uint256"
+      },
+      {
+        "name": "amountTokenMin",
+        "type": "uint256"
+      },
+      {
+        "name": "amountTRXMin",
+        "type": "uint256"
+      },
+      {
+        "name": "to",
+        "type": "address"
+      },
+      {
+        "name": "deadline",
+        "type": "uint256"
+      }
+    ],
+    "name": "removeLiquidityTRX",
+    "outputs": [
+      {
+        "name": "amountToken",
+        "type": "uint256"
+      },
+      {
+        "name": "amountTRX",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "name": "tokenA",
+        "type": "address"
+      },
+      {
+        "name": "tokenB",
+        "type": "address"
+      },
+      {
+        "name": "liquidity",
+        "type": "uint256"
+      },
+      {
+        "name": "amountAMin",
+        "type": "uint256"
+      },
+      {
+        "name": "amountBMin",
+        "type": "uint256"
+      },
+      {
+        "name": "to",
+        "type": "address"
+      },
+      {
+        "name": "deadline",
+        "type": "uint256"
+      },
+      {
+        "name": "approveMax",
+        "type": "bool"
+      },
+      {
+        "name": "v",
+        "type": "uint8"
+      },
+      {
+        "name": "r",
+        "type": "bytes32"
+      },
+      {
+        "name": "s",
+        "type": "bytes32"
+      }
+    ],
+    "name": "removeLiquidityWithPermit",
+    "outputs": [
+      {
+        "name": "amountA",
+        "type": "uint256"
+      },
+      {
+        "name": "amountB",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "name": "token",
+        "type": "address"
+      },
+      {
+        "name": "liquidity",
+        "type": "uint256"
+      },
+      {
+        "name": "amountTokenMin",
+        "type": "uint256"
+      },
+      {
+        "name": "amountTRXMin",
+        "type": "uint256"
+      },
+      {
+        "name": "to",
+        "type": "address"
+      },
+      {
+        "name": "deadline",
+        "type": "uint256"
+      },
+      {
+        "name": "approveMax",
+        "type": "bool"
+      },
+      {
+        "name": "v",
+        "type": "uint8"
+      },
+      {
+        "name": "r",
+        "type": "bytes32"
+      },
+      {
+        "name": "s",
+        "type": "bytes32"
+      }
+    ],
+    "name": "removeLiquidityTRXWithPermit",
+    "outputs": [
+      {
+        "name": "amountToken",
+        "type": "uint256"
+      },
+      {
+        "name": "amountTRX",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
   }
 ]
