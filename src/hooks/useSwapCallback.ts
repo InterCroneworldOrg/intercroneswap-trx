@@ -1,5 +1,5 @@
 import { Contract } from '@ethersproject/contracts';
-import { JSBI, Percent, Router, SwapParameters, Token, Trade, TradeType } from '@intercroneswap/v2-sdk';
+import { ETHER, JSBI, Percent, Router, SwapParameters, Token, Trade, TradeType } from '@intercroneswap/v2-sdk';
 import { useMemo } from 'react';
 import { useSelector } from 'react-redux';
 import { BIPS_BASE, INITIAL_ALLOWED_SLIPPAGE } from '../constants';
@@ -67,6 +67,67 @@ function swapErrorMessage(error: any): string {
   return `The swap simulation failed: ${reason}`;
 }
 
+function v1SwapCallParameters(
+  trade: Trade,
+  allowedSlippage: number,
+  recipient: string,
+  ttl: number,
+): SwapParameters {
+  const slippage = new Percent(JSBI.BigInt(allowedSlippage), BIPS_BASE);
+  const path = trade.route.path.map((token) => token.address);
+  const deadline = (Math.floor(Date.now() / 1000) + ttl).toString();
+  const inputIsTRX = trade.inputAmount.currency === ETHER;
+  const outputIsTRX = trade.outputAmount.currency === ETHER;
+
+  if (trade.tradeType === TradeType.EXACT_INPUT) {
+    const amountIn = trade.inputAmount.raw.toString();
+    const amountOutMin = trade.minimumAmountOut(slippage).raw.toString();
+
+    if (inputIsTRX) {
+      return {
+        methodName: 'swapExactTRXForTokens',
+        args: [amountOutMin, path, recipient, deadline],
+        value: amountIn,
+      };
+    }
+    if (outputIsTRX) {
+      return {
+        methodName: 'swapExactTokensForTRX',
+        args: [amountIn, amountOutMin, path, recipient, deadline],
+        value: '0',
+      };
+    }
+    return {
+      methodName: 'swapExactTokensForTokens',
+      args: [amountIn, amountOutMin, path, recipient, deadline],
+      value: '0',
+    };
+  }
+
+  const amountOut = trade.outputAmount.raw.toString();
+  const amountInMax = trade.maximumAmountIn(slippage).raw.toString();
+
+  if (inputIsTRX) {
+    return {
+      methodName: 'swapTRXForExactTokens',
+      args: [amountOut, path, recipient, deadline],
+      value: amountInMax,
+    };
+  }
+  if (outputIsTRX) {
+    return {
+      methodName: 'swapTokensForExactTRX',
+      args: [amountOut, amountInMax, path, recipient, deadline],
+      value: '0',
+    };
+  }
+  return {
+    methodName: 'swapTokensForExactTokens',
+    args: [amountOut, amountInMax, path, recipient, deadline],
+    value: '0',
+  };
+}
+
 /**
  * Returns the swap calls that can be simulated and, after a successful
  * simulation, submitted to TronLink.
@@ -85,21 +146,21 @@ function useSwapCallArguments(
     const contract: Contract | null = getRouterContract(chainId, library, account);
     if (!contract) return [];
 
-    // Router.swapCallParameters expects a relative TTL and adds the current
-    // timestamp itself. Passing an absolute deadline here produced deadlines
-    // decades in the future.
-    const standard = Router.swapCallParameters(trade, {
-      feeOnTransfer: false,
-      allowedSlippage: new Percent(JSBI.BigInt(allowedSlippage), BIPS_BASE),
-      recipient,
-      ttl,
-    });
+    const isV1 = getActiveSwapVersion() === 'v1';
+    const parameters: SwapParameters[] = isV1
+      ? [v1SwapCallParameters(trade, allowedSlippage, recipient, ttl)]
+      : [
+          Router.swapCallParameters(trade, {
+            feeOnTransfer: false,
+            allowedSlippage: new Percent(JSBI.BigInt(allowedSlippage), BIPS_BASE),
+            recipient,
+            ttl,
+          }),
+        ];
 
-    const parameters: SwapParameters[] = [standard];
-
-    // Only try the fee-on-transfer variant as a fallback. It is more expensive
-    // and may fail late, after the pair swap has already consumed most energy.
-    if (trade.tradeType === TradeType.EXACT_INPUT) {
+    // The attached V1 router has no fee-on-transfer swap methods. V2 keeps the
+    // existing fallback for exact-input trades.
+    if (!isV1 && trade.tradeType === TradeType.EXACT_INPUT) {
       parameters.push(
         Router.swapCallParameters(trade, {
           feeOnTransfer: true,
