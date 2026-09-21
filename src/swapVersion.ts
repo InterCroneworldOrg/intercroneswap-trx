@@ -1,10 +1,11 @@
+// Keep the legacy value in the type so old links can be normalized, but this
+// build always resolves and writes V2.
 export type SwapVersion = 'v1' | 'v2';
 
 const STORAGE_KEY = 'intercrone:swap-version';
 
 export function getActiveSwapVersion(): SwapVersion {
-  if (typeof window === 'undefined') return 'v2';
-  return window.localStorage.getItem(STORAGE_KEY) === 'v1' ? 'v1' : 'v2';
+  return 'v2';
 }
 
 export function setActiveSwapVersion(version: SwapVersion): void {
@@ -17,8 +18,7 @@ export function resetToV2(): void {
 }
 
 export function getSwapVersionFromPath(pathname: string): SwapVersion | undefined {
-  const match = pathname.match(/^\/(v1|v2)(?:\/|$)/);
-  return match?.[1] as SwapVersion | undefined;
+  return /^\/v2(?:\/|$)/.test(pathname) ? 'v2' : undefined;
 }
 
 export function getUnversionedPath(pathname: string): string {
@@ -27,12 +27,10 @@ export function getUnversionedPath(pathname: string): string {
 }
 
 export function versionedPath(pathname: string, version: SwapVersion = getActiveSwapVersion()): string {
-  return `/${version}${getUnversionedPath(pathname)}`;
+  return `/v2${getUnversionedPath(pathname)}`;
 }
 
 export function initializeSwapVersionFromHash(): void {
   if (typeof window === 'undefined') return;
-  const hashPath = window.location.hash.replace(/^#/, '').split('?')[0] || '/';
-  const version = getSwapVersionFromPath(hashPath);
-  if (version) setActiveSwapVersion(version);
+  window.localStorage.setItem(STORAGE_KEY, 'v2');
 }
