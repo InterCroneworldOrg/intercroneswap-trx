@@ -1,13 +1,15 @@
 import { Contract } from '@ethersproject/contracts';
-import { JSBI, Percent, Router, SwapParameters, Trade, TradeType } from '@intercroneswap/v2-sdk';
+import { JSBI, Percent, Router, SwapParameters, Token, Trade, TradeType } from '@intercroneswap/v2-sdk';
 import { useMemo } from 'react';
 import { useSelector } from 'react-redux';
 import { BIPS_BASE, INITIAL_ALLOWED_SLIPPAGE } from '../constants';
+import { ERC20_ABI } from '../constants/abis/erc20';
+import ISWAP_PAIR_ABI from '../constants/abis/iswap-pair.json';
 import { AppState } from '../state';
 import { useTransactionAdder } from '../state/transactions/hooks';
 import { getActiveSwapVersion } from '../swapVersion';
 import { DEFAULT_FEE_LIMIT } from '../tron-config';
-import { getRouterContract } from '../utils';
+import { getContract, getRouterContract } from '../utils';
 import isZero from '../utils/isZero';
 import { useActiveWeb3React } from './index';
 
@@ -167,6 +169,78 @@ export function useSwapCallback(
         };
 
         console.info('[ISwap swap diagnostics] Prepared trade', diagnostics);
+
+        if (trade.inputAmount.currency instanceof Token) {
+          try {
+            const inputToken = getContract(
+              trade.inputAmount.currency.address,
+              ERC20_ABI,
+              library,
+              account,
+            );
+            const [walletBalance, routerAllowance] = await Promise.all([
+              inputToken.balanceOf(account),
+              inputToken.allowance(account, routerContract.address),
+            ]);
+            console.info('[ISwap swap diagnostics] Input token state', {
+              token: trade.inputAmount.currency.address,
+              requiredRaw: trade.inputAmount.raw.toString(),
+              walletBalanceRaw: walletBalance.toString(),
+              routerAllowanceRaw: routerAllowance.toString(),
+              balanceSufficient: walletBalance.gte(trade.inputAmount.raw.toString()),
+              allowanceSufficient: routerAllowance.gte(trade.inputAmount.raw.toString()),
+            });
+          } catch (tokenStateError) {
+            console.error(
+              '[ISwap swap diagnostics] Input token state failed',
+              errorDetails(tokenStateError),
+            );
+          }
+        }
+
+        for (const pair of trade.route.pairs) {
+          const pairAddress = pair.liquidityToken.address;
+          try {
+            const pairContract = getContract(
+              pairAddress,
+              ISWAP_PAIR_ABI,
+              library,
+              account,
+            );
+            const [reserves, token0Address, token1Address] = await Promise.all([
+              pairContract.getReserves(),
+              pairContract.token0(),
+              pairContract.token1(),
+            ]);
+            const token0Contract = getContract(token0Address, ERC20_ABI, library, account);
+            const token1Contract = getContract(token1Address, ERC20_ABI, library, account);
+            const [token0Balance, token1Balance] = await Promise.all([
+              token0Contract.balanceOf(pairAddress),
+              token1Contract.balanceOf(pairAddress),
+            ]);
+            const reserve0 = reserves.reserve0 ?? reserves[0];
+            const reserve1 = reserves.reserve1 ?? reserves[1];
+            console.info('[ISwap swap diagnostics] Pair state', {
+              pair: pairAddress,
+              token0: token0Address,
+              token1: token1Address,
+              reserve0Raw: reserve0.toString(),
+              reserve1Raw: reserve1.toString(),
+              token0BalanceRaw: token0Balance.toString(),
+              token1BalanceRaw: token1Balance.toString(),
+              token0BalanceCoversReserve: token0Balance.gte(reserve0),
+              token1BalanceCoversReserve: token1Balance.gte(reserve1),
+            });
+          } catch (pairStateError) {
+            console.error(
+              '[ISwap swap diagnostics] Pair state failed',
+              {
+                pair: pairAddress,
+                error: errorDetails(pairStateError),
+              },
+            );
+          }
+        }
 
         try {
           const routerQuote = await routerContract.callStatic.getAmountsOut(
