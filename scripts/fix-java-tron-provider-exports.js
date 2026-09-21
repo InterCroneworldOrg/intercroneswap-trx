@@ -121,6 +121,15 @@ for (const tronLinkProviderMethodsPath of tronLinkProviderMethodsPaths) {
         '',
         'const txHash = await contract.methods[functionAbi.name](...mutableFnParams).send(',
       ].join('\n'),
+    )
+    .replace(
+      'const txHash = yield contract.methods[functionAbi.name](...fnParams).send(sendParams);',
+      [
+        '// web3 returns Result arrays with read-only numeric properties. TronWeb',
+        '// normalizes address[] arguments in place, so pass it a plain deep copy.',
+        'const mutableFnParams = JSON.parse(JSON.stringify(fnParams));',
+        'const txHash = yield contract.methods[functionAbi.name](...mutableFnParams).send(sendParams);',
+      ].join('\n'),
     );
 
   if (mutableParamsSource !== methodsSource) {
