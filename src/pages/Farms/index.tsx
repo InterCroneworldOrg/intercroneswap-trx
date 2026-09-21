@@ -30,23 +30,24 @@ const FarmCard = styled(LightCard)`
 `;
 const FarmSummary = styled.div`
   display: grid;
-  grid-template-columns: minmax(210px, 1.45fr) repeat(3, minmax(120px, 1fr)) minmax(145px, .95fr) minmax(145px, .95fr) 34px;
+  grid-template-columns: minmax(210px, 1.45fr) repeat(3, minmax(120px, 1fr)) minmax(145px, .95fr) 34px;
   gap: 18px; align-items: center; padding: 17px 18px;
   @media (max-width: 960px) {
     grid-template-columns: minmax(190px, 1.4fr) repeat(2, minmax(115px, 1fr)) minmax(135px, .9fr) 30px;
-    > :nth-child(4), > :nth-child(6) { display: none; }
+    > :nth-child(4) { display: none; }
   }
   @media (max-width: 680px) {
     grid-template-columns: 1fr 1fr 28px; gap: 14px 10px; padding: 16px;
     > :first-child { grid-column: 1 / 3; }
-    > :nth-child(2), > :nth-child(3), > :nth-child(4), > :nth-child(6) { display: block; }
-    > :nth-child(5), > :nth-child(6) { min-width: 0; }
+    > :nth-child(2), > :nth-child(3), > :nth-child(4) { display: block; }
+    > :nth-child(5) { min-width: 0; }
     > :last-child { grid-column: 3; grid-row: 1; }
   }
 `;
 const PairBlock = styled.div`min-width: 0;`;
 const PairLine = styled.div`
   display: flex; align-items: center; gap: 8px; min-width: 0; font-size: 16px; font-weight: 600;
+  color: #fff;
 `;
 const TokenLogos = styled.div`
   display: flex; flex: 0 0 auto;
@@ -124,6 +125,24 @@ function endedDate(farm: EndedFarm): string {
   if (!value) return 'Ended';
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? 'Ended' : date.toLocaleDateString('de-DE');
+}
+function formatUsd(value?: string | number | null): string {
+  const parsed = typeof value === 'number' ? value : Number(value);
+  if (!Number.isFinite(parsed)) return '–';
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: Math.abs(parsed) < 0.01 && parsed !== 0 ? 6 : 2,
+  }).format(parsed);
+}
+function totalStakedUsd(farm: EndedFarm): string {
+  const record = farm as EndedFarm & {
+    total_staked_usd?: string | number | null;
+    staked_value_usd?: string | number | null;
+    total_value_usd?: string | number | null;
+  };
+  return formatUsd(record.total_staked_usd ?? record.staked_value_usd ?? record.total_value_usd);
 }
 function FarmTokenLogo({ address, symbol }: { address?: string; symbol: string }) {
   const allTokens = useAllLists();
@@ -203,7 +222,6 @@ export default function Farms() {
             <ActionButton disabled={!account || !needsExit || Boolean(pending || submitted)} onClick={() => exitFarm(farm)}>
               {submitted ? 'Exit submitted' : pending ? 'Confirm…' : <>Exit<br /><PositionValue position={position} farm={farm} /></>}
             </ActionButton>
-            <ActionButton as="a" href="#/pool">Get LP</ActionButton>
             <ExpandButton open={open} aria-label={open ? `Hide ${label.pair} details` : `Show ${label.pair} details`}
               aria-expanded={open} onClick={() => setOpenFarms((current) => ({ ...current, [farm.farm_address]: !open }))}>
               <ChevronDown size={19} />
@@ -213,7 +231,7 @@ export default function Farms() {
             <Metric><MetricLabel>Fee</MetricLabel><MetricValue>{farm.fee_percent === undefined ? '–' : `${farm.fee_percent} %`}</MetricValue></Metric>
             <Metric><MetricLabel>Status</MetricLabel><MetricValue>Rewards have ended</MetricValue></Metric>
             <Metric><MetricLabel>Staked</MetricLabel><MetricValue>{position?.has_stake ? rawAmount(position.staked_raw, farm.staking_token_decimals) : '0.00'} LP</MetricValue></Metric>
-            <Metric><MetricLabel>Total Staked</MetricLabel><MetricValue muted>{farm.total_staked_raw ? `${rawAmount(farm.total_staked_raw, farm.staking_token_decimals)} LP` : '–'}</MetricValue></Metric>
+            <Metric><MetricLabel>Total Staked</MetricLabel><MetricValue muted>{totalStakedUsd(farm)}</MetricValue></Metric>
             <DetailLink href={`https://tronscan.org/#/address/${farm.farm_address}`} target="_blank" rel="noopener noreferrer">View Smart Contract <ExternalLink size={13} /></DetailLink>
             {farm.rewards_token_address && <DetailLink href={`https://tronscan.org/#/token20/${farm.rewards_token_address}`} target="_blank" rel="noopener noreferrer">View Token Info <ExternalLink size={13} /></DetailLink>}
           </FarmDetails>}
