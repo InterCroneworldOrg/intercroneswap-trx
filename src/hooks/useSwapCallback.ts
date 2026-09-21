@@ -1,13 +1,16 @@
 import { Contract } from '@ethersproject/contracts';
 import { JSBI, Percent, Router, SwapParameters, Trade, TradeType } from '@intercroneswap/v2-sdk';
 import { useMemo } from 'react';
+import { useSelector } from 'react-redux';
 import { BIPS_BASE, INITIAL_ALLOWED_SLIPPAGE } from '../constants';
+import { AppState } from '../state';
 import { useTransactionAdder } from '../state/transactions/hooks';
+import { getActiveSwapVersion } from '../swapVersion';
+import { DEFAULT_FEE_LIMIT } from '../tron-config';
 import { getRouterContract } from '../utils';
 import isZero from '../utils/isZero';
 import { useActiveWeb3React } from './index';
-import useTransactionDeadline from './useTransactionDeadline';
-import { DEFAULT_FEE_LIMIT } from '../tron-config';
+
 export enum SwapCallbackState {
   INVALID,
   LOADING,
@@ -19,182 +22,161 @@ interface SwapCall {
   parameters: SwapParameters;
 }
 
-// interface SuccessfulCall {
-//   call: SwapCall
-//   gasEstimate: BigNumber
-// }
+function callOptions(value: string | undefined, account: string): { value?: string; from: string } {
+  return value && !isZero(value) ? { value, from: account } : { from: account };
+}
 
-// interface FailedCall {
-//   call: SwapCall
-//   error: Error
-// }
+function swapErrorMessage(error: any): string {
+  const reason =
+    error?.reason ||
+    error?.error?.reason ||
+    error?.error?.message ||
+    error?.data?.message ||
+    error?.message ||
+    'Unknown contract error';
 
-// type EstimatedSwapCall = SuccessfulCall | FailedCall
+  if (
+    reason.includes('INSUFFICIENT_OUTPUT_AMOUNT') ||
+    reason.includes('EXCESSIVE_INPUT_AMOUNT')
+  ) {
+    return 'The current pool price no longer satisfies the selected slippage. Refresh the quote or increase the slippage tolerance.';
+  }
+
+  return `The swap simulation failed: ${reason}`;
+}
 
 /**
- * Returns the swap calls that can be used to make the trade
- * @param trade trade to execute
- * @param allowedSlippage user allowed slippage
+ * Returns the swap calls that can be simulated and, after a successful
+ * simulation, submitted to TronLink.
  */
 function useSwapCallArguments(
-  trade: Trade | undefined, // trade to execute, required
-  allowedSlippage: number = INITIAL_ALLOWED_SLIPPAGE, // in bips
+  trade: Trade | undefined,
+  allowedSlippage: number = INITIAL_ALLOWED_SLIPPAGE,
 ): SwapCall[] {
   const { account, chainId, library } = useActiveWeb3React();
-
+  const ttl = useSelector<AppState, number>((state) => state.user.userDeadline);
   const recipient = account;
-  const deadline = useTransactionDeadline();
 
   return useMemo(() => {
-    if (!trade || !recipient || !library || !account || !chainId || !deadline) return [];
+    if (!trade || !recipient || !library || !account || !chainId || !ttl) return [];
 
     const contract: Contract | null = getRouterContract(chainId, library, account);
-    if (!contract) {
-      return [];
-    }
+    if (!contract) return [];
 
-    const swapMethods = [];
+    // Router.swapCallParameters expects a relative TTL and adds the current
+    // timestamp itself. Passing an absolute deadline here produced deadlines
+    // decades in the future.
+    const standard = Router.swapCallParameters(trade, {
+      feeOnTransfer: false,
+      allowedSlippage: new Percent(JSBI.BigInt(allowedSlippage), BIPS_BASE),
+      recipient,
+      ttl,
+    });
 
-    swapMethods.push(
-      Router.swapCallParameters(trade, {
-        feeOnTransfer: false,
-        allowedSlippage: new Percent(JSBI.BigInt(allowedSlippage), BIPS_BASE),
-        recipient,
-        ttl: deadline.toNumber(),
-      }),
-    );
+    const parameters: SwapParameters[] = [standard];
 
+    // Only try the fee-on-transfer variant as a fallback. It is more expensive
+    // and may fail late, after the pair swap has already consumed most energy.
     if (trade.tradeType === TradeType.EXACT_INPUT) {
-      swapMethods.push(
+      parameters.push(
         Router.swapCallParameters(trade, {
           feeOnTransfer: true,
           allowedSlippage: new Percent(JSBI.BigInt(allowedSlippage), BIPS_BASE),
           recipient,
-          ttl: deadline.toNumber(),
+          ttl,
         }),
       );
     }
-    return swapMethods.map((parameters) => ({ parameters, contract }));
-  }, [account, allowedSlippage, chainId, deadline, library, recipient, trade]);
+
+    return parameters.map((swapParameters) => ({
+      parameters: swapParameters,
+      contract,
+    }));
+  }, [account, allowedSlippage, chainId, library, recipient, trade, ttl]);
 }
 
-// returns a function that will execute a swap, if the parameters are all valid
-// and the user has approved the slippage adjusted input amount for the trade
 export function useSwapCallback(
-  trade: Trade | undefined, // trade to execute, required
-  allowedSlippage: number = INITIAL_ALLOWED_SLIPPAGE, // in bips
+  trade: Trade | undefined,
+  allowedSlippage: number = INITIAL_ALLOWED_SLIPPAGE,
 ): { state: SwapCallbackState; callback: null | (() => Promise<string>); error: string | null } {
   const { account, chainId, library } = useActiveWeb3React();
-
   const swapCalls = useSwapCallArguments(trade, allowedSlippage);
-
   const addTransaction = useTransactionAdder();
-
   const recipient = account;
 
   return useMemo(() => {
     if (!trade || !library || !account || !chainId) {
       return { state: SwapCallbackState.INVALID, callback: null, error: 'Missing dependencies' };
     }
-    if (!recipient) return { state: SwapCallbackState.LOADING, callback: null, error: null };
+    if (!recipient || swapCalls.length === 0) {
+      return { state: SwapCallbackState.LOADING, callback: null, error: null };
+    }
+
+    if (getActiveSwapVersion() === 'v1' && trade.route.path.length !== 2) {
+      return {
+        state: SwapCallbackState.INVALID,
+        callback: null,
+        error: 'V1 only supports direct swaps. No direct V1 pool is available for this pair.',
+      };
+    }
 
     return {
       state: SwapCallbackState.VALID,
       callback: async function onSwap(): Promise<string> {
-        // const estimatedCalls: EstimatedSwapCall[] = await Promise.all(
-        //   swapCalls.map(call => {
-        //     const {
-        //       parameters: { methodName, args, value },
-        //       contract
-        //     } = call
-        //     const options = !value || isZero(value) ? {} : { value }
+        let selectedCall: SwapCall | undefined;
+        let simulationError: any;
 
-        //     return contract.estimateGas[methodName](...args, options)
-        //       .then(gasEstimate => {
-        //         return {
-        //           call,
-        //           gasEstimate
-        //         }
-        //       })
-        //       .catch(gasError => {
-        //         console.debug('Gas estimate failed, trying eth_call to extract error', call)
+        // Never open TronLink before the exact contract call has succeeded as a
+        // read-only simulation. This prevents known reverts from burning TRX.
+        for (const call of swapCalls) {
+          const {
+            contract,
+            parameters: { methodName, args, value },
+          } = call;
 
-        //         return contract.callStatic[methodName](...args, options)
-        //           .then(result => {
-        //             console.debug('Unexpected successful call after failed estimate gas', call, gasError, result)
-        //             return { call, error: new Error('Unexpected issue with estimating the gas. Please try again.') }
-        //           })
-        //           .catch(callError => {
-        //             console.debug('Call threw error', call, callError)
-        //             let errorMessage: string
-        //             switch (callError.reason) {
-        //               case 'loveswapV1Router: INSUFFICIENT_OUTPUT_AMOUNT':
-        //               case 'loveswapV1Router: EXCESSIVE_INPUT_AMOUNT':
-        //                 errorMessage =
-        //                   'This transaction will not succeed either due to price movement or fee on transfer. Try increasing your slippage tolerance.'
-        //                 break
-        //               default:
-        //                 errorMessage = `The transaction cannot succeed due to error: ${callError.reason}. This is probably an issue with one of the tokens you are swapping.`
-        //             }
-        //             return { call, error: new Error(errorMessage) }
-        //           })
-        //       })
-        //   })
-        // )
+          try {
+            await contract.callStatic[methodName](
+              ...args,
+              callOptions(value, account),
+            );
+            selectedCall = call;
+            break;
+          } catch (error) {
+            simulationError = error;
+            console.debug('Swap simulation failed', methodName, error);
+          }
+        }
 
-        // // a successful estimation is a bignumber gas estimate and the next call is also a bignumber gas estimate
-        // const successfulEstimation = estimatedCalls.find(
-        //   (el, ix, list): el is SuccessfulCall =>
-        //     'gasEstimate' in el && (ix === list.length - 1 || 'gasEstimate' in list[ix + 1])
-        // )
+        if (!selectedCall) {
+          throw new Error(swapErrorMessage(simulationError));
+        }
 
-        // if (!successfulEstimation) {
-        //   const errorCalls = estimatedCalls.filter((call): call is FailedCall => 'error' in call)
-        //   if (errorCalls.length > 0) throw errorCalls[errorCalls.length - 1].error
-        //   throw new Error('Unexpected error. Please contact support: none of the calls threw an error')
-        // }
-
-        // const {
-        //   call: {
-        //     contract,
-        //     parameters: { methodName, args, value }
-        //   },
-        //   gasEstimate
-        // } = successfulEstimation
         const {
           contract,
           parameters: { methodName, args, value },
-          // gasEstimate
-        } = swapCalls[swapCalls.length - 1];
-        // console.log(swapCalls[0], 'swapccalls');
+        } = selectedCall;
 
-        return contract[methodName](...args, {
-          gasLimit: DEFAULT_FEE_LIMIT,
-          ...(value && !isZero(value) ? { value, from: account } : { from: account }),
-        })
-          .then((response: any) => {
-            const inputSymbol = trade.inputAmount.currency.symbol;
-            const outputSymbol = trade.outputAmount.currency.symbol;
-            const inputAmount = trade.inputAmount.toSignificant(3);
-            const outputAmount = trade.outputAmount.toSignificant(3);
-
-            const base = `Swap ${inputAmount} ${inputSymbol} for ${outputAmount} ${outputSymbol}`;
-            addTransaction(response, {
-              summary: base,
-            });
-
-            return response.hash;
-          })
-          .catch((error: any) => {
-            // if the user rejected the tx, pass this along
-            if (error?.code === 4001) {
-              throw new Error('Transaction rejected.');
-            } else {
-              // otherwise, the error was unexpected and we need to convey that
-              console.error(`Swap failed`, error, methodName, args, value);
-              throw new Error(`Swap failed: ${error.message}`);
-            }
+        try {
+          const response: any = await contract[methodName](...args, {
+            gasLimit: DEFAULT_FEE_LIMIT,
+            ...callOptions(value, account),
           });
+
+          const inputSymbol = trade.inputAmount.currency.symbol;
+          const outputSymbol = trade.outputAmount.currency.symbol;
+          const inputAmount = trade.inputAmount.toSignificant(3);
+          const outputAmount = trade.outputAmount.toSignificant(3);
+          addTransaction(response, {
+            summary: `Swap ${inputAmount} ${inputSymbol} for ${outputAmount} ${outputSymbol}`,
+          });
+          return response.hash;
+        } catch (error: any) {
+          if (error?.code === 4001) {
+            throw new Error('Transaction rejected.');
+          }
+          console.error('Swap failed', error, methodName, args, value);
+          throw new Error(`Swap failed: ${error?.message || 'Unknown error'}`);
+        }
       },
       error: null,
     };
