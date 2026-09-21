@@ -26,6 +26,26 @@ function callOptions(value: string | undefined, account: string): { value?: stri
   return value && !isZero(value) ? { value, from: account } : { from: account };
 }
 
+function errorDetails(error: any): Record<string, unknown> {
+  return {
+    code: error?.code,
+    reason: error?.reason,
+    message: error?.message,
+    data: error?.data,
+    nestedCode: error?.error?.code,
+    nestedReason: error?.error?.reason,
+    nestedMessage: error?.error?.message,
+    nestedData: error?.error?.data,
+  };
+}
+
+function diagnosticValue(value: any): any {
+  if (Array.isArray(value)) return value.map(diagnosticValue);
+  if (value === null || value === undefined) return value;
+  if (typeof value === 'object' && typeof value.toString === 'function') return value.toString();
+  return value;
+}
+
 function swapErrorMessage(error: any): string {
   const reason =
     error?.reason ||
@@ -125,6 +145,45 @@ export function useSwapCallback(
       callback: async function onSwap(): Promise<string> {
         let selectedCall: SwapCall | undefined;
         let simulationError: any;
+        const simulationResults: Array<Record<string, unknown>> = [];
+        const routerContract = swapCalls[0].contract;
+        const route = trade.route.path.map((token) => token.address);
+        const diagnostics = {
+          version: getActiveSwapVersion(),
+          account,
+          router: routerContract.address,
+          tradeType: trade.tradeType,
+          inputSymbol: trade.inputAmount.currency.symbol,
+          outputSymbol: trade.outputAmount.currency.symbol,
+          inputRaw: trade.inputAmount.raw.toString(),
+          expectedOutputRaw: trade.outputAmount.raw.toString(),
+          route,
+          pairs: trade.route.pairs.map((pair) => pair.liquidityToken.address),
+          calls: swapCalls.map(({ parameters }) => ({
+            methodName: parameters.methodName,
+            args: diagnosticValue(parameters.args),
+            value: parameters.value,
+          })),
+        };
+
+        console.info('[ISwap swap diagnostics] Prepared trade', diagnostics);
+
+        try {
+          const routerQuote = await routerContract.callStatic.getAmountsOut(
+            trade.inputAmount.raw.toString(),
+            route,
+            { from: account },
+          );
+          console.info(
+            '[ISwap swap diagnostics] Router quote',
+            diagnosticValue(routerQuote),
+          );
+        } catch (quoteError) {
+          console.error(
+            '[ISwap swap diagnostics] Router quote failed',
+            errorDetails(quoteError),
+          );
+        }
 
         // Never open TronLink before the exact contract call has succeeded as a
         // read-only simulation. This prevents known reverts from burning TRX.
@@ -140,15 +199,32 @@ export function useSwapCallback(
               callOptions(value, account),
             );
             selectedCall = call;
+            simulationResults.push({ methodName, success: true });
+            console.info('[ISwap swap diagnostics] Simulation succeeded', {
+              methodName,
+            });
             break;
           } catch (error) {
             simulationError = error;
-            console.debug('Swap simulation failed', methodName, error);
+            const result = {
+              methodName,
+              success: false,
+              error: errorDetails(error),
+            };
+            simulationResults.push(result);
+            console.error('[ISwap swap diagnostics] Simulation failed', result);
           }
         }
 
         if (!selectedCall) {
-          throw new Error(swapErrorMessage(simulationError));
+          console.error('[ISwap swap diagnostics] All simulations failed', {
+            diagnostics,
+            simulationResults,
+          });
+          const methods = simulationResults
+            .map((result) => `${result.methodName}: ${(result.error as any)?.reason || (result.error as any)?.nestedReason || (result.error as any)?.message || (result.error as any)?.nestedMessage || 'unknown error'}`)
+            .join(' | ');
+          throw new Error(`${swapErrorMessage(simulationError)} [${methods}]`);
         }
 
         const {
