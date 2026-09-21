@@ -242,6 +242,104 @@ export function useSwapCallback(
           }
         }
 
+        if (
+          trade.inputAmount.currency instanceof Token &&
+          trade.outputAmount.currency instanceof Token &&
+          trade.route.pairs.length === 1
+        ) {
+          const pairAddress = trade.route.pairs[0].liquidityToken.address;
+          const inputToken = getContract(
+            trade.inputAmount.currency.address,
+            ERC20_ABI,
+            library,
+            account,
+          );
+          const outputToken = getContract(
+            trade.outputAmount.currency.address,
+            ERC20_ABI,
+            library,
+            account,
+          );
+
+          try {
+            const transferFromData = inputToken.interface.encodeFunctionData(
+              'transferFrom',
+              [account, pairAddress, trade.inputAmount.raw.toString()],
+            );
+            const transferFromResult = await library.call({
+              to: inputToken.address,
+              from: routerContract.address,
+              data: transferFromData,
+            });
+            console.info(
+              '[ISwap swap diagnostics] Isolated input transferFrom succeeded',
+              {
+                token: inputToken.address,
+                from: account,
+                spender: routerContract.address,
+                to: pairAddress,
+                amountRaw: trade.inputAmount.raw.toString(),
+                result: diagnosticValue(
+                  inputToken.interface.decodeFunctionResult(
+                    'transferFrom',
+                    transferFromResult,
+                  ),
+                ),
+              },
+            );
+          } catch (inputTransferError) {
+            console.error(
+              '[ISwap swap diagnostics] Isolated input transferFrom failed',
+              {
+                token: inputToken.address,
+                from: account,
+                spender: routerContract.address,
+                to: pairAddress,
+                amountRaw: trade.inputAmount.raw.toString(),
+                error: errorDetails(inputTransferError),
+              },
+            );
+          }
+
+          try {
+            const outputTransferData = outputToken.interface.encodeFunctionData(
+              'transfer',
+              [account, trade.outputAmount.raw.toString()],
+            );
+            const outputTransferResult = await library.call({
+              to: outputToken.address,
+              from: pairAddress,
+              data: outputTransferData,
+            });
+            console.info(
+              '[ISwap swap diagnostics] Isolated output transfer succeeded',
+              {
+                token: outputToken.address,
+                from: pairAddress,
+                to: account,
+                amountRaw: trade.outputAmount.raw.toString(),
+                result: diagnosticValue(
+                  outputToken.interface.decodeFunctionResult(
+                    'transfer',
+                    outputTransferResult,
+                  ),
+                ),
+              },
+            );
+          } catch (outputTransferError) {
+            console.error(
+              '[ISwap swap diagnostics] Isolated output transfer failed',
+              {
+                token: outputToken.address,
+                from: pairAddress,
+                to: account,
+                amountRaw: trade.outputAmount.raw.toString(),
+                error: errorDetails(outputTransferError),
+              },
+            );
+          }
+        }
+
         try {
           const routerQuote = await routerContract.callStatic.getAmountsOut(
             trade.inputAmount.raw.toString(),
