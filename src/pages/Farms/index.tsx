@@ -95,12 +95,22 @@ const STAKING_ABI = ['function exit()'];
 function splitFarmLabel(farm: EndedFarm): { pair: string; reward: string } {
   const clean = (farm.legacy_label || 'Ended farm').replace(/\s+/g, ' ').trim();
   const match = clean.match(/^(.*?)\s+(?:-|–|—)?\s*Earn\s+(.+)$/i);
-  const pair = (match?.[1] || clean).replace(/\s*(?:-|–|—)\s*$/, '').trim();
-  const symbols = pair.split('/').map((value) => value.trim()).filter(Boolean);
+  const rawPair = (match?.[1] || clean).replace(/\s*(?:-|–|—)\s*$/, '').trim();
+  const legacyPair = rawPair.match(/^([A-Za-z0-9.]+)\s*[-/]\s*([A-Za-z0-9.]+)$/);
+  const symbols = legacyPair
+    ? [legacyPair[1], legacyPair[2]]
+    : rawPair.split('/').map((value) => value.trim()).filter(Boolean);
   return {
-    pair: symbols.join(' / ') || pair,
+    pair: symbols.join(' / ') || rawPair,
     reward: farm.rewards_token_symbol || match?.[2]?.trim() || symbols[symbols.length - 1] || 'rewards',
   };
+}
+
+function isV1DiscoveryFarm(farm: EndedFarm): boolean {
+  const record = farm as EndedFarm & { version?: string; dex_version?: string; discovery_source?: string };
+  const version = (record.version || record.dex_version || '').toLowerCase();
+  const label = (farm.legacy_label || '').toLowerCase();
+  return version === 'v1' || label.includes('discovered v1 lp staking contract');
 }
 function rawAmount(raw?: string, decimals = 6): string {
   if (!raw || !/^\d+$/.test(raw)) return '0.00';
@@ -139,6 +149,7 @@ export default function Farms() {
   const toggleWalletModal = useWalletModalToggle();
   const addTransaction = useTransactionAdder();
   const { farms, positionsByFarm, loading, error, refresh } = useEndedFarms(account);
+  const visibleFarms = useMemo(() => farms.filter((farm) => !isV1DiscoveryFarm(farm)), [farms]);
   const [openFarms, setOpenFarms] = useState<Record<string, boolean>>({});
   const [pendingFarm, setPendingFarm] = useState<string>();
   const [submittedFarms, setSubmittedFarms] = useState<Record<string, string>>({});
@@ -171,8 +182,8 @@ export default function Farms() {
       </GreyCard>}
       {transactionError && <GreyCard padding="16px"><TYPE.body>{transactionError}</TYPE.body></GreyCard>}
       {loading ? <EmptyState><TYPE.body>Loading ended farms…</TYPE.body></EmptyState>
-      : farms.length === 0 ? <EmptyState><TYPE.body>No ended farms found.</TYPE.body></EmptyState>
-      : <FarmList>{farms.map((farm) => {
+      : visibleFarms.length === 0 ? <EmptyState><TYPE.body>No ended farms found.</TYPE.body></EmptyState>
+      : <FarmList>{visibleFarms.map((farm) => {
         const position = positionsByFarm[farm.farm_address];
         const needsExit = Boolean(position?.exit_required);
         const submitted = submittedFarms[farm.farm_address];
