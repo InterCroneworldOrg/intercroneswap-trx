@@ -3,12 +3,14 @@ import { Contract } from '@ethersproject/contracts';
 import { AddressZero } from '@ethersproject/constants';
 import { JsonRpcSigner, Web3Provider } from '@ethersproject/providers';
 import { BigNumber } from '@ethersproject/bignumber';
-import IntercroneswapV1Router02ABI from '../constants/abis/iswap-router.json';
+import IntercroneswapRouterABI from '../constants/abis/iswap-router.json';
+import IntercroneswapV1RouterABI from '../constants/abis/iswap-v1-router.json';
 import { ROUTER_ADDRESS } from '../constants';
 import { ChainId, JSBI, Percent, Token, CurrencyAmount, Currency, ETHER } from '@intercroneswap/v2-sdk';
 import { TokenAddressMap } from '../state/lists/hooks';
 import { ethAddress, remove0xPrefix } from '../connectors/javaTronProviderCompat';
 import { getAddress } from 'ethers/lib/utils';
+import { getActiveSwapVersion } from '../swapVersion';
 
 // returns the checksummed address if the address is valid, otherwise returns false
 export function isAddress(value: any): string | false {
@@ -108,7 +110,8 @@ export function getContract(address: string, ABI: any, library: Web3Provider, ac
 
 // account is optional
 export function getRouterContract(_: number, library: any, account?: string): Contract {
-  return getContract(ROUTER_ADDRESS, IntercroneswapV1Router02ABI, library, account);
+  const abi = getActiveSwapVersion() === 'v1' ? IntercroneswapV1RouterABI : IntercroneswapRouterABI;
+  return getContract(ROUTER_ADDRESS, abi, library, account);
 }
 
 export function escapeRegExp(string: string): string {
