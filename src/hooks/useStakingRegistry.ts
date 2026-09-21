@@ -9,6 +9,12 @@ export interface EndedFarm {
   period_finish_at?: string;
   staking_token_address?: string;
   rewards_token_address?: string;
+  staking_token_symbol?: string;
+  rewards_token_symbol?: string;
+  staking_token_decimals?: number;
+  rewards_token_decimals?: number;
+  total_staked_raw?: string;
+  fee_percent?: number;
 }
 
 export interface FarmWalletPosition {
