@@ -36,9 +36,7 @@ jobs:
           context: .
           file: ./Dockerfile
           push: ${{ github.event_name == 'push' }}
-          tags: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:dev3
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:dev3-${{ github.sha }}
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:dev3
           build-args: |
             REACT_APP_CHAIN_ID=11111
             REACT_APP_NETWORK_URL=https://api.trongrid.io
