@@ -5,12 +5,14 @@ import WETH_ABI from '../../constants/abis/weth.json';
 import ERC20_ABI from '../../constants/abis/erc20.json';
 import { MULTICALL_ABI } from '../../constants/multicall';
 import Web3 from 'web3';
-import IntercroneswapV1Router02ABI from '../../constants/abis/iswap-router.json';
+import IntercroneswapRouterABI from '../../constants/abis/iswap-router.json';
+import IntercroneswapV1RouterABI from '../../constants/abis/iswap-v1-router.json';
 import ISwapV1PairABI from '../../constants/abis/iswap-pair.json';
 
 export const abis = [
   ...ERC20_ABI,
-  ...IntercroneswapV1Router02ABI,
+  ...IntercroneswapRouterABI,
+  ...IntercroneswapV1RouterABI,
   // ...IUniswapV2PairABI,
   // ...UNISOCKS_ABI,
   ...WETH_ABI,
