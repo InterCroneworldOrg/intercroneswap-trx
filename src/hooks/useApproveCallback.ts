@@ -1,6 +1,6 @@
 import { MaxUint256 } from '@ethersproject/constants';
 import { TransactionResponse } from '@ethersproject/providers';
-import { Trade, TokenAmount, CurrencyAmount, ETHER } from '@intercroneswap/v2-sdk';
+import { Trade, TokenAmount, CurrencyAmount, ETHER, JSBI } from '@intercroneswap/v2-sdk';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ROUTER_ADDRESS } from '../constants';
 import { useTokenAllowance } from '../data/Allowances';
@@ -26,11 +26,12 @@ export function useApproveCallback(
 ): [ApprovalState, () => Promise<void>] {
   const { account } = useActiveWeb3React();
   const token = amountToApprove instanceof TokenAmount ? amountToApprove.token : undefined;
+  const tokenAddress = token?.address;
   const amountToApproveRaw = amountToApprove?.raw.toString();
   // console.log(token, 'token');
   const currentAllowance = useTokenAllowance(token, account ?? undefined, spender);
-  const pendingApproval = useHasPendingApproval(token?.address, spender);
-  const confirmedApproval = useHasConfirmedApproval(token?.address, spender);
+  const pendingApproval = useHasPendingApproval(tokenAddress, spender);
+  const confirmedApproval = useHasConfirmedApproval(tokenAddress, spender);
   const [interactiveAllowanceRaw, setInteractiveAllowanceRaw] = useState<string>();
   const [interactiveCheckFailed, setInteractiveCheckFailed] = useState(false);
 
@@ -38,13 +39,14 @@ export function useApproveCallback(
     const controller = new AbortController();
     setInteractiveAllowanceRaw(undefined);
     setInteractiveCheckFailed(false);
-    if (!confirmedApproval || !token || !account || !spender || !amountToApproveRaw) return () => controller.abort();
-    const approvedToken = token;
+    if (!confirmedApproval || !tokenAddress || !account || !spender || !amountToApproveRaw) {
+      return () => controller.abort();
+    }
     const requiredAmountRaw = amountToApproveRaw;
 
     const apiBase = (process.env.REACT_APP_MARKETS_API_URL || '/markets-api').replace(/\/$/, '');
     const params = new URLSearchParams({
-      token: token.address,
+      token: tokenAddress,
       owner: account,
       spender,
     });
@@ -60,7 +62,7 @@ export function useApproveCallback(
           const body = await response.json();
           const raw = String(body.allowance_raw ?? '0');
           setInteractiveAllowanceRaw(raw);
-          if (!new TokenAmount(approvedToken, raw).lessThan(new TokenAmount(approvedToken, requiredAmountRaw))) return;
+          if (!JSBI.lessThan(JSBI.BigInt(raw), JSBI.BigInt(requiredAmountRaw))) return;
           if (attempt < 4) await new Promise((resolve) => window.setTimeout(resolve, 1000));
         }
       } catch (error: any) {
@@ -70,7 +72,7 @@ export function useApproveCallback(
 
     verifyAllowance();
     return () => controller.abort();
-  }, [account, amountToApproveRaw, confirmedApproval, spender, token]);
+  }, [account, amountToApproveRaw, confirmedApproval, spender, tokenAddress]);
 
   // check the current approval status
   const approvalState: ApprovalState = useMemo(() => {
