@@ -1,9 +1,7 @@
 import { CurrencyAmount, JSBI, Token, Trade } from '@intercroneswap/v2-sdk';
-import { useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import { ArrowDown } from 'react-feather';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import ReactGA from 'react-ga';
-import styled, { ThemeContext } from 'styled-components';
-import AddressInputPanel from '../../components/AddressInputPanel';
+import styled from 'styled-components';
 import { ButtonError, ButtonPrimary, ButtonConfirmed } from '../../components/Button';
 import { GreyCard } from '../../components/Card';
 import Settings from '../../components/Settings';
@@ -11,20 +9,15 @@ import Column, { AutoColumn } from '../../components/Column';
 import ConfirmSwapModal from '../../components/swap/ConfirmSwapModal';
 import CurrencyInputPanel from '../../components/CurrencyInputPanel';
 import { AutoRow, RowBetween } from '../../components/Row';
-import BetterTradeLink, { DefaultVersionLink } from '../../components/swap/BetterTradeLink';
 import confirmPriceImpactWithoutFee from '../../components/swap/confirmPriceImpactWithoutFee';
 import { ArrowWrapper, BottomGrouping, SwapCallbackError, Wrapper } from '../../components/swap/styleds';
 import TokenWarningModal from '../../components/TokenWarningModal';
 import ProgressSteps from '../../components/ProgressSteps';
 
-import { BETTER_TRADE_LINK_THRESHOLD } from '../../constants';
-import { getTradeVersion, isTradeBetter } from '../../data/V';
 import { useActiveWeb3React } from '../../hooks';
 import { useCurrency } from '../../hooks/Tokens';
 import { ApprovalState, useApproveCallbackFromTrade } from '../../hooks/useApproveCallback';
-import useENSAddress from '../../hooks/useENSAddress';
 import { useSwapCallback } from '../../hooks/useSwapCallback';
-import useToggledVersion, { DEFAULT_VERSION, Version } from '../../hooks/useToggledVersion';
 import useWrapCallback, { WrapType } from '../../hooks/useWrapCallback';
 import { useWalletModalToggle } from '../../state/application/hooks';
 import { Field } from '../../state/swap/actions';
@@ -35,7 +28,7 @@ import {
   useSwapState,
 } from '../../state/swap/hooks';
 import { useExpertModeManager, useUserSlippageTolerance } from '../../state/user/hooks';
-import { Divider, LinkStyledButton, TYPE } from '../../theme';
+import { Divider, TYPE } from '../../theme';
 import { maxAmountSpend } from '../../utils/maxAmountSpend';
 import { computeTradePriceBreakdown, warningSeverity } from '../../utils/prices';
 import AppBody, { Container } from '../AppBody';
@@ -93,8 +86,6 @@ export default function Swap() {
   }, []);
 
   const { account } = useActiveWeb3React();
-  const theme = useContext(ThemeContext);
-
   // toggle wallet when disconnected
   const toggleWalletModal = useWalletModalToggle();
 
@@ -106,36 +97,15 @@ export default function Swap() {
   const [allowedSlippage] = useUserSlippageTolerance();
 
   // swap state
-  const { independentField, typedValue, recipient } = useSwapState();
-  const {
-    vTrade,
-    v1Trade,
-    currencyBalances,
-    parsedAmount,
-    currencies,
-    inputError: swapInputError,
-  } = useDerivedSwapInfo();
+  const { independentField, typedValue } = useSwapState();
+  const { v1Trade, currencyBalances, parsedAmount, currencies, inputError: swapInputError } = useDerivedSwapInfo();
   const {
     wrapType,
     execute: onWrap,
     inputError: wrapInputError,
   } = useWrapCallback(currencies[Field.INPUT], currencies[Field.OUTPUT], typedValue);
   const showWrap: boolean = wrapType !== WrapType.NOT_APPLICABLE;
-  const { address: recipientAddress } = useENSAddress(recipient);
-  const toggledVersion = useToggledVersion();
-  const tradesByVersion = {
-    [Version.v]: vTrade,
-    [Version.v1]: v1Trade,
-  };
-  const trade = showWrap ? undefined : tradesByVersion[toggledVersion];
-  const defaultTrade = showWrap ? undefined : tradesByVersion[DEFAULT_VERSION];
-
-  const betterTradeLinkVersion: Version | undefined =
-    toggledVersion === Version.v1 && isTradeBetter(v1Trade, vTrade, BETTER_TRADE_LINK_THRESHOLD)
-      ? Version.v
-      : toggledVersion === Version.v && isTradeBetter(vTrade, v1Trade)
-      ? Version.v1
-      : undefined;
+  const trade = showWrap ? undefined : v1Trade;
 
   const parsedAmounts = showWrap
     ? {
@@ -147,7 +117,7 @@ export default function Swap() {
         [Field.OUTPUT]: independentField === Field.OUTPUT ? parsedAmount : trade?.outputAmount,
       };
   // onSwitchTokens
-  const { onSwitchTokens, onCurrencySelection, onUserInput, onChangeRecipient } = useSwapActionHandlers();
+  const { onSwitchTokens, onCurrencySelection, onUserInput } = useSwapActionHandlers();
   const isValid = !swapInputError;
   const dependentField: Field = independentField === Field.INPUT ? Field.OUTPUT : Field.INPUT;
 
@@ -209,7 +179,7 @@ export default function Swap() {
   const atMaxAmountInput = Boolean(maxAmountInput && parsedAmounts[Field.INPUT]?.equalTo(maxAmountInput));
 
   // the callback to execute the swap
-  const { callback: swapCallback, error: swapCallbackError } = useSwapCallback(trade, allowedSlippage, recipient);
+  const { callback: swapCallback, error: swapCallbackError } = useSwapCallback(trade, allowedSlippage);
 
   const { priceImpactWithoutFee } = computeTradePriceBreakdown(trade);
 
@@ -227,17 +197,8 @@ export default function Swap() {
 
         ReactGA.event({
           category: 'Swap',
-          action:
-            recipient === null
-              ? 'Swap w/o Send'
-              : (recipientAddress ?? recipient) === account
-              ? 'Swap w/o Send + recipient'
-              : 'Swap w/ Send',
-          label: [
-            trade?.inputAmount?.currency?.symbol,
-            trade?.outputAmount?.currency?.symbol,
-            getTradeVersion(trade),
-          ].join('/'),
+          action: 'Swap',
+          label: [trade?.inputAmount?.currency?.symbol, trade?.outputAmount?.currency?.symbol, 'router'].join('/'),
         });
       })
       .catch((error) => {
@@ -249,7 +210,7 @@ export default function Swap() {
           txHash: undefined,
         });
       });
-  }, [tradeToConfirm, account, priceImpactWithoutFee, recipient, recipientAddress, showConfirm, swapCallback, trade]);
+  }, [tradeToConfirm, account, priceImpactWithoutFee, showConfirm, swapCallback, trade]);
 
   // errors
   // const [showInverted, setShowInverted] = useState<boolean>(false);
@@ -331,7 +292,7 @@ export default function Swap() {
               onAcceptChanges={handleAcceptChanges}
               attemptingTxn={attemptingTxn}
               txHash={txHash}
-              recipient={recipient}
+              recipient={null}
               allowedSlippage={allowedSlippage}
               onConfirm={handleSwap}
               swapErrorMessage={swapErrorMessage}
@@ -360,11 +321,6 @@ export default function Swap() {
                       }}
                     />
                   </ArrowWrapper>
-                  {recipient === null && !showWrap && isExpertMode ? (
-                    <LinkStyledButton id="add-recipient-button" onClick={() => onChangeRecipient('')}>
-                      + Add a send (optional)
-                    </LinkStyledButton>
-                  ) : null}
                 </AutoRow>
               </AutoColumn>
               <CurrencyInputPanel
@@ -378,20 +334,6 @@ export default function Swap() {
                 otherCurrency={currencies[Field.INPUT]}
                 id="swap-currency-output"
               />
-
-              {recipient !== null && !showWrap ? (
-                <>
-                  <AutoRow justify="space-between" style={{ padding: '0 0rem' }}>
-                    <ArrowWrapper clickable={false}>
-                      <ArrowDown size="16" color={theme.text2} />
-                    </ArrowWrapper>
-                    <LinkStyledButton id="remove-recipient-button" onClick={() => onChangeRecipient(null)}>
-                      - Remove send
-                    </LinkStyledButton>
-                  </AutoRow>
-                  <AddressInputPanel id="recipient" value={recipient} onChange={onChangeRecipient} />
-                </>
-              ) : null}
             </AutoColumn>
             <BottomGrouping className="submtBtn">
               <div style={{ maxWidth: '350px', margin: '0 auto' }}>
@@ -489,11 +431,6 @@ export default function Swap() {
                 </Column>
               )}
               {isExpertMode && swapErrorMessage ? <SwapCallbackError error={swapErrorMessage} /> : null}
-              {betterTradeLinkVersion ? (
-                <BetterTradeLink version={betterTradeLinkVersion} />
-              ) : toggledVersion !== DEFAULT_VERSION && defaultTrade ? (
-                <DefaultVersionLink />
-              ) : null}
             </BottomGrouping>
           </Wrapper>
         </AppBody>

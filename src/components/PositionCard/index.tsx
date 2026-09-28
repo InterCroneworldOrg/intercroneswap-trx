@@ -4,12 +4,13 @@ import { useContext, useState } from 'react';
 import { ChevronDown, ChevronUp } from 'react-feather';
 import { Link } from 'react-router-dom';
 import styled, { ThemeContext } from 'styled-components';
-import { useTotalSupply } from '../../data/TotalSupply';
+import { useCachedLiquidityTotalSupply } from '../../data/TotalSupply';
 
 import { useActiveWeb3React } from '../../hooks';
-import { useTokenBalance } from '../../state/wallet/hooks';
+import { useCachedLiquidityTokenBalance } from '../../state/wallet/hooks';
 import { Divider, ExternalLink, TYPE } from '../../theme';
 import { currencyId } from '../../utils/currencyId';
+import { versionedPath } from '../../swapVersion';
 import { unwrappedToken } from '../../utils/wrappedCurrency';
 import {
   ButtonPrimary,
@@ -17,7 +18,7 @@ import {
   ButtonEmpty,
 } from '../Button';
 import ExternalIcon from '../../assets/images/arrrow-external.svg';
-import { ethAddress } from '@intercroneswap/java-tron-provider';
+import { ethAddress } from '../../connectors/javaTronProviderCompat';
 
 // import { transparentize } from 'polished';
 // import { CardNoise } from '../earn/styled'
@@ -79,8 +80,8 @@ PositionCardProps) {
 
   // const [showMore, setShowMore] = useState(false);
 
-  const userPoolBalance = useTokenBalance(account ?? undefined, pair.liquidityToken);
-  const totalPoolTokens = useTotalSupply(pair.liquidityToken);
+  const userPoolBalance = useCachedLiquidityTokenBalance(account ?? undefined, pair.liquidityToken);
+  const totalPoolTokens = useCachedLiquidityTotalSupply(pair.liquidityToken);
 
   const poolTokenPercentage =
     !!userPoolBalance && !!totalPoolTokens && JSBI.greaterThanOrEqual(totalPoolTokens.raw, userPoolBalance.raw)
@@ -223,8 +224,8 @@ export default function FullPositionCard({ pair, border }: PositionCardProps) {
 
   const [showMore, setShowMore] = useState(false);
 
-  const userPoolBalance = useTokenBalance(account ?? undefined, pair.liquidityToken);
-  const totalPoolTokens = useTotalSupply(pair.liquidityToken);
+  const userPoolBalance = useCachedLiquidityTokenBalance(account ?? undefined, pair.liquidityToken);
+  const totalPoolTokens = useCachedLiquidityTotalSupply(pair.liquidityToken);
 
   const poolTokenPercentage =
     !!userPoolBalance && !!totalPoolTokens && JSBI.greaterThanOrEqual(totalPoolTokens.raw, userPoolBalance.raw)
@@ -315,7 +316,7 @@ export default function FullPositionCard({ pair, border }: PositionCardProps) {
                   padding="8px"
                   borderRadius="8px"
                   as={Link}
-                  to={`/add/${currencyId(currency0)}/${currencyId(currency1)}`}
+                  to={versionedPath(`/add/${currencyId(currency0)}/${currencyId(currency1)}`)}
                   width="48%"
                   style={{ color: '#000' }}
                 >
@@ -327,7 +328,7 @@ export default function FullPositionCard({ pair, border }: PositionCardProps) {
                   as={Link}
                   width="48%"
                   style={{ color: '#000' }}
-                  to={`/remove/${currencyId(currency0)}/${currencyId(currency1)}`}
+                  to={versionedPath(`/remove/${currencyId(currency0)}/${currencyId(currency1)}`)}
                 >
                   Remove
                 </ButtonPrimary>
@@ -385,9 +386,11 @@ export default function FullPositionCard({ pair, border }: PositionCardProps) {
                 {/* <ButtonSecondary padding="8px" borderRadius="8px"> */}
                 <ExternalLink
                   style={{ marginTop: '10px', width: '100%', textAlign: 'center', color: '#fff' }}
-                  href={`#/add/${isCurrency0ETH ? ETHER.symbol : pair.token0.address}/${
-                    isCurrency1ETH ? ETHER.symbol : pair.token1.address
-                  }`}
+                  href={`#${versionedPath(
+                    `/add/${isCurrency0ETH ? ETHER.symbol : pair.token0.address}/${
+                      isCurrency1ETH ? ETHER.symbol : pair.token1.address
+                    }`,
+                  )}`}
                 >
                   <div style={{ display: 'flex', alignItems: 'center' }}>
                     Get {currency0.symbol} - {currency1.symbol} LP

@@ -1,14 +1,14 @@
 import { Currency, CurrencyAmount, JSBI, Pair, Percent, TokenAmount } from '@intercroneswap/v2-sdk';
 import { useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { usePair } from '../../data/Reserves';
+import { PairState, usePair } from '../../data/Reserves';
 import { useTotalSupply } from '../../data/TotalSupply';
 
 import { useActiveWeb3React } from '../../hooks';
 import { wrappedCurrency } from '../../utils/wrappedCurrency';
 import { AppDispatch, AppState } from '../index';
 import { tryParseAmount } from '../swap/hooks';
-import { useTokenBalances } from '../wallet/hooks';
+import { useTokenBalancesWithLoadingIndicator } from '../wallet/hooks';
 import { Field, typeInput } from './actions';
 
 export function useBurnState(): AppState['burn'] {
@@ -27,17 +27,22 @@ export function useDerivedBurnInfo(
     [Field.CURRENCY_B]?: CurrencyAmount;
   };
   error?: string;
+  loading: boolean;
 } {
   const { account, chainId } = useActiveWeb3React();
 
   const { independentField, typedValue } = useBurnState();
 
   // pair + totalsupply
-  const [, pair] = usePair(currencyA, currencyB);
+  const [pairState, pair] = usePair(currencyA, currencyB, false);
 
-  // balances
-  const relevantTokenBalances = useTokenBalances(account ?? undefined, [pair?.liquidityToken]);
-  const userLiquidity: undefined | TokenAmount = relevantTokenBalances?.[pair?.liquidityToken?.address ?? ''];
+  // The remove page deliberately waits for a fresh wallet balance.
+  const [relevantTokenBalances, balanceLoading] = useTokenBalancesWithLoadingIndicator(
+    account ?? undefined,
+    [pair?.liquidityToken],
+  );
+  const userLiquidity: undefined | TokenAmount =
+    relevantTokenBalances?.[pair?.liquidityToken?.address ?? ''];
 
   const [tokenA, tokenB] = [wrappedCurrency(currencyA, chainId), wrappedCurrency(currencyB, chainId)];
   const tokens = {
@@ -126,7 +131,12 @@ export function useDerivedBurnInfo(
     error = error ?? 'Enter an amount';
   }
 
-  return { pair, parsedAmounts, error };
+  const loading =
+    pairState === PairState.LOADING ||
+    balanceLoading ||
+    Boolean(account && pair?.liquidityToken && !totalSupply);
+
+  return { pair, parsedAmounts, error, loading };
 }
 
 export function useBurnActionHandlers(): {

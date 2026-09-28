@@ -1,10 +1,11 @@
 import { Currency, CurrencyAmount, ETHER, JSBI, Token, TokenAmount } from '@intercroneswap/v2-sdk';
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import ERC20_INTERFACE from '../../constants/abis/erc20';
 import { useAllTokens } from '../../hooks/Tokens';
 import { useActiveWeb3React } from '../../hooks';
 import { useMulticallContract } from '../../hooks/useContract';
 import { isAddress } from '../../utils';
+import { readLiquidityValue, writeLiquidityValue } from '../../utils/liquidityValueCache';
 import { useSingleContractMultipleData, useMultipleContractSingleData } from '../multicall/hooks';
 // import { useUserUnclaimedAmount } from '../claim/hooks'
 
@@ -91,6 +92,27 @@ export function useTokenBalance(account?: string, token?: Token): TokenAmount | 
   const tokenBalances = useTokenBalances(account, [token]);
   if (!token) return undefined;
   return tokenBalances[token.address];
+}
+
+export function useCachedLiquidityTokenBalance(account?: string, token?: Token): TokenAmount | undefined {
+  const liveBalance = useTokenBalance(account, token);
+  const [cachedRaw, setCachedRaw] = useState<string | undefined>(() =>
+    account && token ? readLiquidityValue('balance', token.chainId, token.address, account) : undefined,
+  );
+
+  useEffect(() => {
+    setCachedRaw(account && token ? readLiquidityValue('balance', token.chainId, token.address, account) : undefined);
+  }, [account, token]);
+
+  useEffect(() => {
+    if (!account || !token || !liveBalance) return;
+    const raw = liveBalance.raw.toString();
+    writeLiquidityValue('balance', token.chainId, token.address, raw, account);
+    setCachedRaw(raw);
+  }, [account, liveBalance, token]);
+
+  if (!token) return undefined;
+  return liveBalance || (cachedRaw !== undefined ? new TokenAmount(token, cachedRaw) : undefined);
 }
 
 export function useCurrencyBalances(

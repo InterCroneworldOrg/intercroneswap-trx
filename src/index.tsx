@@ -22,6 +22,9 @@ import './styles/global.css';
 import './styles/override.css';
 import './styles/responsive.css';
 import './styles/custom.scss';
+import { initializeSwapVersionFromHash } from './swapVersion';
+
+initializeSwapVersionFromHash();
 
 const Web3ProviderNetwork = createWeb3ReactRoot(NetworkContextName);
 

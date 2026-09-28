@@ -1,6 +1,7 @@
 import { Col, Container, Row } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
 import Style from '../../styles/footer.module.css';
+import { versionedPath } from '../../swapVersion';
 import icr500dark from '../../assets/images/icr500dark.png';
 import styled from 'styled-components';
 import Twitter from '../../assets/svg/Twitter_white.svg';
@@ -70,18 +71,13 @@ const Footer = () => {
             <p className={Style.iswap}>ISwap</p>
             <ul className={Style.ul}>
               <li>
-                <Link to="/swap" className={`${Style.link} nav-link`}>
+                <Link to={versionedPath('/swap')} className={`${Style.link} nav-link`}>
                   Exchange
                 </Link>
               </li>
               <li>
-                <Link to="/pool" className={`${Style.link} nav-link`}>
+                <Link to={versionedPath('/pool')} className={`${Style.link} nav-link`}>
                   Liquidity
-                </Link>
-              </li>
-              <li>
-                <Link to="/stake" className={`${Style.link} nav-link`}>
-                  Staking
                 </Link>
               </li>
               {/* <li>
@@ -89,16 +85,6 @@ const Footer = () => {
                 Dashboard
               </Link>
             </li> */}
-              <li>
-                <Link to="/nft" className={`${Style.link} nav-link`}>
-                  NFT
-                </Link>
-              </li>
-              <li>
-                <Link to="/markets" className={`${Style.link} nav-link`}>
-                  Market
-                </Link>
-              </li>
             </ul>
           </Col>
           <Col md={3}>

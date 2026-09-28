@@ -1,6 +1,6 @@
 import { getTokenLogoURL } from './tokenLogo';
 import { TokenList } from '@intercroneswap/token-lists';
-import { ethAddress } from '@intercroneswap/java-tron-provider';
+import { ethAddress } from '../connectors/javaTronProviderCompat';
 
 /**
  * Prompt the user to add a custom token to metamask

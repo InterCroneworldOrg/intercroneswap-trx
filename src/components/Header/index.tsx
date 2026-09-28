@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { Navbar, Container, Nav } from 'react-bootstrap';
 import Style from '../../styles/header.module.css';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import styled from 'styled-components';
 import Logo from '../../assets/images/ISwap.svg';
 import { useActiveWeb3React } from '../../hooks';
@@ -15,6 +15,13 @@ import { useCallback, useState } from 'react';
 
 import { Box } from 'rebass';
 import Blockchains from '../Blockchains';
+import {
+  getActiveSwapVersion,
+  getSwapVersionFromPath,
+  setActiveSwapVersion,
+  SwapVersion,
+  versionedPath,
+} from '../../swapVersion';
 
 const Row = styled(Box)<{ align?: string; padding?: string; border?: string; borderRadius?: string }>`
   display: flex;
@@ -70,6 +77,24 @@ export const AutoRow = styled(Row)<{ gap?: string; justify?: string }>`
   }
 `;
 
+const VersionToggle = styled.div`
+  display: inline-flex;
+  padding: 3px;
+  margin: 0 12px;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.28);
+`;
+
+const VersionButton = styled.button<{ active: boolean }>`
+  border: 0;
+  border-radius: 9px;
+  padding: 7px 11px;
+  cursor: pointer;
+  color: ${({ active }) => (active ? '#1c1c1c' : '#ffffff')};
+  background: ${({ active }) => (active ? '#f3c914' : 'transparent')};
+  font-weight: 700;
+`;
+
 const HeaderLinks = styled(Row)`
   justify-content: center;
   ${({ theme }) => theme.mediaWidth.upToMedium`
@@ -98,9 +123,36 @@ const AccountElement = styled.div<{ active: boolean }>`
 `;
 
 export default function Header() {
+  const location = useLocation();
   const { account } = useActiveWeb3React();
   const [dropshow, setDropShow] = useState(false);
   const [toggle, setToggle] = useState(false);
+  const activeVersion = getSwapVersionFromPath(location.pathname) || getActiveSwapVersion();
+
+  const replaceVersionAndReload = useCallback((version: SwapVersion) => {
+    setActiveSwapVersion(version);
+    const currentHash = window.location.hash.replace(/^#/, '');
+    const [path, query] = currentHash.split('?');
+    const target = `${versionedPath(path || '/swap', version)}${query ? `?${query}` : ''}`;
+    window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}#${target}`);
+    window.location.reload();
+  }, []);
+
+  const selectVersion = (version: SwapVersion) => {
+    if (version === activeVersion) return;
+    replaceVersionAndReload(version);
+  };
+
+  const versionToggle = () => (
+    <VersionToggle title="Select InterCrone Swap version">
+      <VersionButton active={activeVersion === 'v2'} onClick={() => selectVersion('v2')}>
+        V2
+      </VersionButton>
+      <VersionButton active={activeVersion === 'v1'} onClick={() => selectVersion('v1')}>
+        V1
+      </VersionButton>
+    </VersionToggle>
+  );
 
   const changeHamIcon = () => {
     setToggle(!toggle);
@@ -137,20 +189,17 @@ export default function Header() {
   const links = useCallback(() => {
     return (
       <>
-        <Link to="/swap" className={`${Style.link} nav-link`}>
+        <Link to={versionedPath('/swap')} className={`${Style.link} nav-link`}>
           Exchange
         </Link>
-        <Link to="/pool" className={`${Style.link} nav-link`}>
+        <Link to={versionedPath('/pool')} className={`${Style.link} nav-link`}>
           Liquidity
         </Link>
-        <Link to="/stake" className={`${Style.link} nav-link`}>
-          Staking
-        </Link>
-        <Link to="/markets" className={`${Style.link} nav-link`}>
+        <Link to={versionedPath('/markets')} className={`${Style.link} nav-link`}>
           Markets
         </Link>
-        <Link to="/nft" className={`${Style.link} nav-link`}>
-          NFT
+        <Link to={versionedPath('/farms')} className={`${Style.link} nav-link`}>
+          Farms
         </Link>
       </>
     );
@@ -195,7 +244,10 @@ export default function Header() {
                 <img width={'115px'} src={Logo} alt="logo" />
               </Navbar.Brand>
               <Navbar.Toggle aria-controls="basic-navbar-nav" />
-              <Navbar.Collapse id="basic-navbar-nav">{headerLinks()}</Navbar.Collapse>
+              <Navbar.Collapse id="basic-navbar-nav">
+                {versionToggle()}
+                {headerLinks()}
+              </Navbar.Collapse>
             </AutoRow>
             <AutoRow justify="space-between">{links()}</AutoRow>
           </Container>
@@ -205,6 +257,7 @@ export default function Header() {
               <img width={'115px'} src={Logo} alt="logo" />
             </Navbar.Brand>
             {tokenDropdown()}
+            {versionToggle()}
             <Navbar.Toggle aria-controls="basic-navbar-nav" />
             <Navbar.Collapse id="basic-navbar-nav">
               <Nav className="mx-auto">{links()}</Nav>

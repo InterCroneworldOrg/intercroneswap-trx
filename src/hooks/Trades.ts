@@ -5,13 +5,15 @@ import { useMemo } from 'react';
 import { BASES_TO_CHECK_TRADES_AGAINST, CUSTOM_BASES } from '../constants';
 import { PairState, usePairs } from '../data/Reserves';
 import { wrappedCurrency } from '../utils/wrappedCurrency';
+import { getActiveSwapVersion } from '../swapVersion';
 
 import { useActiveWeb3React } from './index';
 
 export function useAllCommonPairs(currencyA?: Currency, currencyB?: Currency): Pair[] {
   const { chainId } = useActiveWeb3React();
 
-  const bases: Token[] = chainId ? BASES_TO_CHECK_TRADES_AGAINST[chainId] : [];
+  const isV1 = getActiveSwapVersion() === 'v1';
+  const bases: Token[] = chainId && !isV1 ? BASES_TO_CHECK_TRADES_AGAINST[chainId] : [];
 
   const [tokenA, tokenB] = chainId
     ? [wrappedCurrency(currencyA, chainId), wrappedCurrency(currencyB, chainId)]
@@ -86,7 +88,10 @@ export function useTradeExactIn(currencyAmountIn?: CurrencyAmount, currencyOut?:
   return useMemo(() => {
     if (currencyAmountIn && currencyOut && allowedPairs.length > 0) {
       return (
-        Trade.bestTradeExactIn(allowedPairs, currencyAmountIn, currencyOut, { maxHops: 3, maxNumResults: 1 })[0] ?? null
+        Trade.bestTradeExactIn(allowedPairs, currencyAmountIn, currencyOut, {
+          maxHops: getActiveSwapVersion() === 'v1' ? 1 : 3,
+          maxNumResults: 1,
+        })[0] ?? null
       );
     }
     return null;
@@ -102,7 +107,10 @@ export function useTradeExactOut(currencyIn?: Currency, currencyAmountOut?: Curr
   return useMemo(() => {
     if (currencyIn && currencyAmountOut && allowedPairs.length > 0) {
       return (
-        Trade.bestTradeExactOut(allowedPairs, currencyIn, currencyAmountOut, { maxHops: 3, maxNumResults: 1 })[0] ??
+        Trade.bestTradeExactOut(allowedPairs, currencyIn, currencyAmountOut, {
+          maxHops: getActiveSwapVersion() === 'v1' ? 1 : 3,
+          maxNumResults: 1,
+        })[0] ??
         null
       );
     }

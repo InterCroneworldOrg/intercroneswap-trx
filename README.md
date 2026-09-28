@@ -39,6 +39,28 @@ npm install
 npm start
 ```
 
+### Configuring TronGrid
+
+Create `.env.local` (do not commit it) and add your free TronGrid key:
+
+```bash
+REACT_APP_NETWORK_URL=https://api.trongrid.io
+REACT_APP_TRONGRID_API_KEY=your_trongrid_key
+```
+
+The interface reduces RPC usage with shared in-flight de-duplication, a short
+read cache, a request gap and 30-second block polling. These values can be tuned:
+
+```bash
+REACT_APP_RPC_POLLING_INTERVAL_MS=30000
+REACT_APP_RPC_CACHE_TTL_MS=12000
+REACT_APP_RPC_MIN_INTERVAL_MS=120
+```
+
+`REACT_APP_*` values are embedded into the browser bundle. Configure domain
+restrictions for the key in TronGrid. For a secret key, put a small server-side
+proxy in front of TronGrid instead.
+
 ### Configuring the environment (optional)
 
 To have the interface default to a different network when a wallet is not connected:

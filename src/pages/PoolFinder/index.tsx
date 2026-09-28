@@ -15,6 +15,7 @@ import { usePairAdder } from '../../state/user/hooks';
 import { useTokenBalance } from '../../state/wallet/hooks';
 import { StyledInternalLink, TYPE } from '../../theme';
 import { currencyId } from '../../utils/currencyId';
+import { versionedPath } from '../../swapVersion';
 import AppBody from '../AppBody';
 import { Dots } from '../Pool/styleds';
 import { ThemeContext } from 'styled-components';
@@ -160,7 +161,7 @@ export default function PoolFinder() {
             <TYPE.white textAlign="center" fontWeight={500}>
               Pool Found!
             </TYPE.white>
-            <StyledInternalLink to={`/pool`}>
+            <StyledInternalLink to={versionedPath('/pool')}>
               <TYPE.white textAlign="center" color={theme.yellow2}>
                 Manage this pool.
               </TYPE.white>
@@ -176,7 +177,7 @@ export default function PoolFinder() {
               <LightCard padding="45px 10px">
                 <AutoColumn gap="sm" justify="center">
                   <TYPE.white textAlign="center">You don’t have liquidity in this pool yet.</TYPE.white>
-                  <StyledInternalLink to={`/add/${currencyId(currency0)}/${currencyId(currency1)}`}>
+                  <StyledInternalLink to={versionedPath(`/add/${currencyId(currency0)}/${currencyId(currency1)}`)}>
                     <TYPE.white textAlign="center">Add liquidity.</TYPE.white>
                   </StyledInternalLink>
                 </AutoColumn>
@@ -186,7 +187,7 @@ export default function PoolFinder() {
             <LightCard padding="45px 10px">
               <AutoColumn gap="sm" justify="center">
                 <TYPE.white textAlign="center">No pool found.</TYPE.white>
-                <StyledInternalLink to={`/add/${currencyId(currency0)}/${currencyId(currency1)}`}>
+                <StyledInternalLink to={versionedPath(`/add/${currencyId(currency0)}/${currencyId(currency1)}`)}>
                   <TYPE.white textAlign="center" color={theme.primary3}>
                     Create pool.
                   </TYPE.white>

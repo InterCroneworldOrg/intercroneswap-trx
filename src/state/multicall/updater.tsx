@@ -1,5 +1,5 @@
 import { Contract } from '@ethersproject/contracts';
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useActiveWeb3React } from '../../hooks';
 import { useMulticallContract } from '../../hooks/useContract';
@@ -13,12 +13,25 @@ import {
   errorFetchingMulticallResults,
   fetchingMulticallResults,
   parseCallKey,
+  toCallKey,
   updateMulticallResults,
 } from './actions';
 
-// chunk calls so we do not exceed the gas limit
-const CALL_CHUNK_SIZE = 25;
-const BACKOFF_TIMEOUT = 5000;
+// TRON nodes enforce a short TVM execution timeout for constant calls. Keeping
+// batches small avoids an expensive aggregate timing out and being retried.
+const CALL_CHUNK_SIZE = 6;
+const MIN_BLOCKS_PER_FETCH = 5;
+const CHUNK_REQUEST_GAP_MS = 750;
+
+function wait(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function isRateLimitedOrTemporary(error: any): boolean {
+  const status = error?.response?.status ?? error?.status ?? error?.statusCode;
+  const message = String(error?.message ?? error ?? '').toLowerCase();
+  return status === 429 || status >= 500 || message.includes('429') || message.includes('too many requests');
+}
 
 /**
  * Fetches a chunk of calls, enforcing a minimum block number constraint
@@ -31,15 +44,15 @@ async function fetchChunk(
   chunk: Call[],
   minBlockNumber: number,
 ): Promise<{ results: string[]; blockNumber: number }> {
-  console.debug('Fetching chunk', multicallContract, chunk, minBlockNumber);
-
   let resultsBlockNumber, returnData;
   try {
     [resultsBlockNumber, returnData] = await multicallContract.aggregate(
       chunk.map((obj) => [obj.address, obj.callData]),
     );
   } catch (error) {
-    console.debug('Failed to fetch chunk inside retry', error);
+    if (isRateLimitedOrTemporary(error)) {
+      throw new RetryableError('TronGrid temporarily rate limited the request');
+    }
     throw error;
   }
   if (resultsBlockNumber.toNumber() < minBlockNumber) {
@@ -66,7 +79,7 @@ export function activeListeningKeys(
   return Object.keys(listeners).reduce<{ [callKey: string]: number }>((memo, callKey) => {
     const keyListeners = listeners[callKey];
 
-    memo[callKey] = Object.keys(keyListeners)
+    const requestedBlocksPerFetch = Object.keys(keyListeners)
       .filter((key) => {
         const blocksPerFetch = parseInt(key);
         if (blocksPerFetch <= 0) return false;
@@ -75,6 +88,9 @@ export function activeListeningKeys(
       .reduce((previousMin, current) => {
         return Math.min(previousMin, parseInt(current));
       }, Infinity);
+    memo[callKey] = Number.isFinite(requestedBlocksPerFetch)
+      ? Math.max(requestedBlocksPerFetch, MIN_BLOCKS_PER_FETCH)
+      : requestedBlocksPerFetch;
     return memo;
   }, {});
 }
@@ -122,7 +138,8 @@ export default function Updater(): null {
   const latestBlockNumber = useBlockNumber();
   const { chainId } = useActiveWeb3React();
   const multicallContract = useMulticallContract();
-  const cancellations = useRef<{ blockNumber: number; cancellations: (() => void)[] }>();
+  const activeQueue = useRef<{ chainId: number; cancel: () => void }>();
+  const [queueRevision, setQueueRevision] = useState(0);
 
   const listeningKeys: { [callKey: string]: number } = useMemo(() => {
     return activeListeningKeys(debouncedListeners, chainId);
@@ -138,17 +155,22 @@ export default function Updater(): null {
   );
 
   useEffect(() => {
-    if (!latestBlockNumber || !chainId || !multicallContract) return;
+    if (!latestBlockNumber || !chainId || !multicallContract || activeQueue.current) return;
 
     const outdatedCallKeys: string[] = JSON.parse(serializedOutdatedCallKeys);
     if (outdatedCallKeys.length === 0) return;
     const calls = outdatedCallKeys.map((key) => parseCallKey(key));
-
     const chunkedCalls = chunkArray(calls, CALL_CHUNK_SIZE);
+    let cancelled = false;
+    let cancelCurrentRequest: (() => void) | undefined;
 
-    if (cancellations.current?.blockNumber !== latestBlockNumber) {
-      cancellations.current?.cancellations?.forEach((c) => c());
-    }
+    activeQueue.current = {
+      chainId,
+      cancel: () => {
+        cancelled = true;
+        cancelCurrentRequest?.();
+      },
+    };
 
     dispatch(
       fetchingMulticallResults({
@@ -158,42 +180,35 @@ export default function Updater(): null {
       }),
     );
 
-    cancellations.current = {
-      blockNumber: latestBlockNumber,
-      cancellations: chunkedCalls.map((chunk, index) => {
-        const { cancel, promise } = retry(() => fetchChunk(multicallContract, chunk, latestBlockNumber), {
-          n: 2,
-          minWait: 2500,
-          maxWait: 7500,
-        });
-        promise
-          .then(({ results: returnData, blockNumber: fetchBlockNumber }) => {
-            cancellations.current = { cancellations: [], blockNumber: latestBlockNumber };
+    const fetchSequentially = async () => {
+      try {
+        for (const chunk of chunkedCalls) {
+          if (cancelled) return;
 
-            const firstCallKeyIndex = chunkedCalls
-              .slice(0, index)
-              .reduce<number>((memo, curr) => memo + curr.length, 0);
-            const lastCallKeyIndex = firstCallKeyIndex + returnData.length;
+          const { cancel, promise } = retry(() => fetchChunk(multicallContract, chunk, latestBlockNumber), {
+            n: 2,
+            minWait: 3000,
+            maxWait: 9000,
+          });
+          cancelCurrentRequest = cancel;
+
+          try {
+            const { results: returnData, blockNumber: fetchBlockNumber } = await promise;
+            if (cancelled) return;
 
             dispatch(
               updateMulticallResults({
                 chainId,
-                results: outdatedCallKeys
-                  .slice(firstCallKeyIndex, lastCallKeyIndex)
-                  .reduce<{ [callKey: string]: string | null }>((memo, callKey, i) => {
-                    memo[callKey] = returnData[i] ?? null;
-                    return memo;
-                  }, {}),
+                results: chunk.reduce<{ [callKey: string]: string | null }>((memo, call, index) => {
+                  memo[toCallKey(call)] = returnData[index] ?? null;
+                  return memo;
+                }, {}),
                 blockNumber: fetchBlockNumber,
               }),
             );
-          })
-          .catch((error: any) => {
-            if (error instanceof CancelledError) {
-              console.debug('Cancelled fetch for blockNumber', latestBlockNumber);
-              return;
-            }
-            console.error('Failed to fetch multicall chunk', chunk, chainId, error);
+          } catch (error) {
+            if (error instanceof CancelledError || cancelled) return;
+            console.warn('Multicall request failed after retry; continuing with remaining calls', error);
             dispatch(
               errorFetchingMulticallResults({
                 calls: chunk,
@@ -201,17 +216,35 @@ export default function Updater(): null {
                 fetchingBlockNumber: latestBlockNumber,
               }),
             );
-          });
+          }
 
-        // Füge hier die setTimeout-Funktion ein
-        setTimeout(() => {
-          // Code, der nach einer Verzögerung ausgeführt werden soll
-        }, BACKOFF_TIMEOUT); // BACKOFF_TIMEOUT ist die Zeit der Verzögerung in Millisekunden
-
-        return cancel;
-      }),
+          if (!cancelled) await wait(CHUNK_REQUEST_GAP_MS);
+        }
+      } finally {
+        if (activeQueue.current?.chainId === chainId) {
+          activeQueue.current = undefined;
+          setQueueRevision((revision) => revision + 1);
+        }
+      }
     };
-  }, [chainId, multicallContract, dispatch, serializedOutdatedCallKeys, latestBlockNumber]);
+
+    fetchSequentially();
+  }, [
+    chainId,
+    multicallContract,
+    dispatch,
+    serializedOutdatedCallKeys,
+    latestBlockNumber,
+    queueRevision,
+  ]);
+
+  useEffect(
+    () => () => {
+      activeQueue.current?.cancel();
+      activeQueue.current = undefined;
+    },
+    [chainId, multicallContract],
+  );
 
   return null;
 }

@@ -1,5 +1,5 @@
 import { ChainId, Token, WETH } from '@intercroneswap/v2-sdk';
-// import { BACKEND_URL } from '.';
+import { evmAddressToTronAddress, tronAddressToEvmAddress } from '../tron-config';
 
 export function getTokensFromDefaults(symbols: string): [Token, Token] | undefined {
   const symbolsSplit = symbols.split('-');
@@ -12,6 +12,14 @@ export function getTokensFromDefaults(symbols: string): [Token, Token] | undefin
 }
 
 export let tokensFromApi: Token[] = [];
+
+function createTronToken(address: string, decimals: number, symbol: string, name: string): Token {
+  return new Token(ChainId.MAINNET, tronAddressToEvmAddress(address), decimals, symbol.trim(), name);
+}
+
+export function getTronTokenAddress(token: Token): string {
+  return evmAddressToTronAddress(token.address);
+}
 
 const TOKENLIST_URL =
   'https://raw.githubusercontent.com/InterCroneworldOrg/token-lists/e91b53da5b8d08e0b2b6fdccf93ece3b5abda6f1/intercroneswap_default.json';
@@ -26,54 +34,11 @@ export const fetchTokens = async () => {
 
   tokensFromApi = list
     .filter((t: any) => Number(t.chainId) === 11111)
-    .map((t: any) => new Token(Number(t.chainId), t.address, Number(t.decimals), String(t.symbol).trim(), t.name));
+    .map((t: any) => {
+      const address = String(t.address).startsWith('T') ? tronAddressToEvmAddress(t.address) : t.address;
+      return new Token(Number(t.chainId), address, Number(t.decimals), String(t.symbol).trim(), t.name);
+    });
 };
-
-// const fetchBackendUrl = async () => {
-//   // Simulate a network request delay
-//   await new Promise((resolve) => setTimeout(resolve, 1000));
-//   return BACKEND_URL;
-// };
-
-// const setBackendUrl = async () => {
-//   url = await fetchBackendUrl();
-// };
-
-// // Initialize url
-// let url = '';
-
-// // Immediately invoke the setBackendUrl function
-
-// export const fetchTokens = async () => {
-//   const response = await fetch(`${url}/tokens/all?chainId=11111`, {
-//     method: 'GET',
-//     mode: 'cors',
-//   });
-//   if (response.status == 200) {
-//     const json = await response.json();
-//     if (json.data?.length > tokensFromApi.length) {
-//       tokensFromApi = json.data?.map((data: any) => {
-//         const token = new Token(data.chain_id, data.address, data.decimals, data.symbol, data.name);
-//         return token;
-//       });
-//     }
-//   }
-// };
-
-// let isFetchTokensInitialized = false; // Flag to track whether fetchTokens has been called
-
-// const initializeFetchTokens = async () => {
-//   if (!isFetchTokensInitialized) {
-//     await setBackendUrl();
-//     await fetchTokens();
-//     isFetchTokensInitialized = true;
-//   }
-// };
-
-// // Immediately invoke the initializeFetchTokens function
-// (async () => {
-//   await initializeFetchTokens();
-// })();
 
 export function getTokenFromDefaults(symbol: string): Token | undefined {
   let token: Token | undefined = symbol === 'TRX' ? WETH[ChainId.MAINNET] : DefaultTokensMap[symbol];
@@ -83,91 +48,37 @@ export function getTokenFromDefaults(symbol: string): Token | undefined {
   return token;
 }
 
-export const PLZ = new Token(ChainId.MAINNET, '0xF51616FA89A8D63DA1BE20D8EA2C1D0A383FACEF', 8, 'PLZ', 'Plaentz');
-export const ICR = new Token(ChainId.MAINNET, '0x6C50DDDAECA053249582D7F823BCC8299B3FB293', 8, 'ICR', 'Intercrone');
-export const USDT = new Token(ChainId.MAINNET, '0xA614F803B6FD780986A42C78EC9C7F77E6DED13C', 6, 'USDT', 'Tether');
-export const BTT = new Token(ChainId.MAINNET, '0x032017411F4663B317FE77C257D28D5CD1B26E3D', 18, 'BTT', 'BitTorrent');
-export const MEOX = new Token(ChainId.MAINNET, '0xA481DC6C5E0A964523E5059F930EE5BA6B4E479C', 18, 'MEOX', 'Metronix');
-export const BTC = new Token(ChainId.MAINNET, '0x84716914C0FDF7110A44030D04D0C4923504D9CC', 8, 'BTC', 'Bitcoin');
-export const ETHOLD = new Token(
-  ChainId.MAINNET,
-  '0x53908308F4AA220FB10D778B5D1B34489CD6EDFC',
-  18,
-  'ETHOLD',
-  'Ethereum',
-);
-export const ETH = new Token(ChainId.MAINNET, '0xA7A572F6D8B4CA291B9353CF26580ABED74F3E31', 18, 'ETH', 'Ethereum');
-export const USDJ = new Token(
-  ChainId.MAINNET,
-  '0x834295921A488D9D42B4B3021ED1A3C39FB0F03E',
-  18,
-  'USDJ ',
-  'JUST Stablecoin',
-);
-export const TUSD = new Token(ChainId.MAINNET, '0xCEBDE71077B830B958C8DA17BCDDEEB85D0BCF25', 18, 'TUSD ', 'TrueUSD');
-export const USDC = new Token(ChainId.MAINNET, '0x3487B63D30B5B2C87FB7FFA8BCFADE38EAAC1ABE', 6, 'USDC ', 'USD Coin');
-export const USDD = new Token(ChainId.MAINNET, '0x94F24E992CA04B49C6F2A2753076EF8938ED4DAA', 18, 'USDD ', 'USDD Coin');
-export const WIN = new Token(ChainId.MAINNET, '0x74472E7D35395A6B5ADD427EECB7F4B62AD2B071', 6, 'WIN ', 'WINK');
-export const SST = new Token(
-  ChainId.MAINNET,
-  '0x0EFAC3802727C5F873B887E8119FE895B5156577',
-  8,
-  'SST ',
-  'SocialSwapToken',
-);
-export const JM = new Token(
-  ChainId.MAINNET,
-  '0xD3D54671FCA80648A5886F990FD40117F94D247F',
-  8,
-  'JM ',
-  'J U S T M O N E Y',
-);
-export const JST = new Token(ChainId.MAINNET, '0x18FD0626DAF3AF02389AEF3ED87DB9C33F638FFA', 18, 'JST ', 'JUST GOV');
-export const NFT = new Token(ChainId.MAINNET, '0x3DFE637B2B9AE4190A458B5F3EFC1969AFE27819', 6, 'NFT ', 'APENFT');
-export const SUN = new Token(ChainId.MAINNET, '0xB4A428AB7092C2F1395F376CE297033B3BB446C1', 18, 'SUN ', 'SUN');
-export const WBTT = new Token(ChainId.MAINNET, '0x6A6337AE47A09AEA0BBD4FAEB23CA94349C7B774', 6, 'WBTT ', 'Wrapped BTT');
-export const LTC = new Token(ChainId.MAINNET, '0xA54BD6077B2EB012D92D9563FF15D2199D8123DE', 8, 'LTC ', 'Litecoin');
-export const HT = new Token(ChainId.MAINNET, '0x2C036253E0C053188C621B81B7CD40A99B828400', 18, 'HT ', 'HuobiToken');
-export const KLV = new Token(ChainId.MAINNET, '0xD8B8089856CED3038601CBEB1E3F765CABC12A41', 6, 'KLV ', 'Klever');
-export const Doge = new Token(ChainId.MAINNET, '0x53A58D995EF4937017A8AB47722186A12A27905E', 8, 'Doge ', 'Dogecoin');
-export const TURU = new Token(ChainId.MAINNET, '0x6471F94B57853C253273275FD695606AFF44CD8F', 8, 'turu ', 'turu');
-export const BBT = new Token(ChainId.MAINNET, '0x4CD9F886FCFD6BBDB234954B817F47BD49B6667C', 8, 'BBT', 'BabyTuru');
-export const CCC = new Token(
-  ChainId.MAINNET,
-  '0xAEEE06D6DE1E3D65864A0765104599E2315D4DC5',
-  18,
-  'CCC',
-  'Coconut Chicken',
-);
+export const PLZ = createTronToken('TYK71t3eD1pTxpkDp7gbqXM5DYfaVdfKjV', 8, 'PLZ', 'Plaentz');
+export const ICR = createTronToken('TKqvrVG7a2zJvQ3VysLoiz9ijuMNDehwy7', 8, 'ICR', 'Intercrone');
+export const USDT = createTronToken('TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t', 6, 'USDT', 'Tether');
+export const BTT = createTronToken('TAFjULxiVgT4qWk6UZwjqwZXTSaGaqnVp4', 18, 'BTT', 'BitTorrent');
+export const MEOX = createTronToken('TQy3PRQda43yb3Ku35AktG549KMQLCJVDb', 18, 'MEOX', 'Metronix');
+export const BTC = createTronToken('TN3W4H6rK2ce4vX9YnFQHwKENnHjoxb3m9', 8, 'BTC', 'Bitcoin');
+export const ETHOLD = createTronToken('THb4CqiFdwNHsWsQCs4JhzwjMWys4aqCbF', 18, 'ETHOLD', 'Ethereum');
+export const ETH = createTronToken('TRFe3hT5oYhjSZ6f3ji5FJ7YCfrkWnHRvh', 18, 'ETH', 'Ethereum');
+export const USDJ = createTronToken('TMwFHYXLJaRUPeW6421aqXL4ZEzPRFGkGT', 18, 'USDJ ', 'JUST Stablecoin');
+export const TUSD = createTronToken('TUpMhErZL2fhh4sVNULAbNKLokS4GjC1F4', 18, 'TUSD ', 'TrueUSD');
+export const USDC = createTronToken('TEkxiTehnzSmSe2XqrBj4w32RUN966rdz8', 6, 'USDC ', 'USD Coin');
+export const USDD = createTronToken('TPYmHEhy5n8TCEfYGqW2rPxsghSfzghPDn', 18, 'USDD ', 'USDD Coin');
+export const WIN = createTronToken('TLa2f6VPqDgRE67v1736s7bJ8Ray5wYjU7', 6, 'WIN ', 'WINK');
+export const SST = createTronToken('TBLQs7LqUYAgzYirNtaiX3ixnCKnhrVVCe', 8, 'SST ', 'SocialSwapToken');
+export const JM = createTronToken('TVHH59uHVpHzLDMFFpUgCx2dNAQqCzPhcR', 8, 'JM ', 'J U S T M O N E Y');
+export const JST = createTronToken('TCFLL5dx5ZJdKnWuesXxi1VPwjLVmWZZy9', 18, 'JST ', 'JUST GOV');
+export const NFT = createTronToken('TFczxzPhnThNSqr5by8tvxsdCFRRz6cPNq', 6, 'NFT ', 'APENFT');
+export const SUN = createTronToken('TSSMHYeV2uE9qYH95DqyoCuNCzEL1NvU3S', 18, 'SUN ', 'SUN');
+export const WBTT = createTronToken('TKfjV9RNKJJCqPvBtK8L7Knykh7DNWvnYt', 6, 'WBTT ', 'Wrapped BTT');
+export const LTC = createTronToken('TR3DLthpnDdCGabhVDbD3VMsiJoCXY3bZd', 8, 'LTC ', 'Litecoin');
+export const HT = createTronToken('TDyvndWuvX5xTBwHPYJi7J3Yq8pq8yh62h', 18, 'HT ', 'HuobiToken');
+export const KLV = createTronToken('TVj7RNVHy6thbM7BWdSe9G6gXwKhjhdNZS', 6, 'KLV ', 'Klever');
+export const Doge = createTronToken('THbVQp8kMjStKNnf2iCY6NEzThKMK5aBHg', 8, 'Doge ', 'Dogecoin');
+export const TURU = createTronToken('TK8K7HFDLkhYS6XnFC8MKQkVK6Xq8D13qJ', 8, 'turu ', 'turu');
+export const BBT = createTronToken('TGyZUWrL97mmmYJwrC7ZCLVrhbzvHmmWPL', 8, 'BBT', 'BabyTuru');
+export const CCC = createTronToken('TRv9ipj4kKAZqQggQ7ceJpe5ERD1ZShpgs', 18, 'CCC', 'Coconut Chicken');
 
-export const BCC = new Token(
-  ChainId.MAINNET,
-  '0xECD5F1B3AD33FDF1022DA2EA77802951DC07633C',
-  18,
-  'BCC',
-  'Baby Coconut Chicken',
-);
-export const BBC = new Token(
-  ChainId.MAINNET,
-  '0x1FED0629E3FF6B7D1E8C0D7656854FA44ECBFC86',
-  18,
-  'BBC',
-  'Big Black Cockerel',
-);
-export const ECO = new Token(
-  ChainId.MAINNET,
-  '0xA9432C25FEA3A5A8E1ABF21C2B993F6589E1627D',
-  18,
-  'ECO',
-  'Eggcellent Chicken One',
-);
-export const COME = new Token(
-  ChainId.MAINNET,
-  '0xEA98A5047A37DD4B10F331ADB17B55AAFA682F19',
-  18,
-  'COME',
-  'CommunityEarth',
-);
+export const BCC = createTronToken('TXZUmRx4T1RW2Uj1GeTmJWyx98R9XAS2sn', 18, 'BCC', 'Baby Coconut Chicken');
+export const BBC = createTronToken('TCt1tj8v6wwQ7pacS547XU1Wq5Eoed5MyD', 18, 'BBC', 'Big Black Cockerel');
+export const ECO = createTronToken('TRQBfhgrRXuALbCmS172znZ5XeA4H98Pao', 18, 'ECO', 'Eggcellent Chicken One');
+export const COME = createTronToken('TXMdyszg7XyiVW98QyvwcBh71y7i4pytoH', 18, 'COME', 'CommunityEarth');
 
 export const DefaultTokensMap: { [tokenSymbol: string]: Token } = {
   ['ICR']: ICR,

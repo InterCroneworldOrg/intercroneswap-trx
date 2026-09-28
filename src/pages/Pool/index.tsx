@@ -1,25 +1,24 @@
-import { useContext, useEffect, useMemo, useState } from 'react';
+import { useContext, useMemo } from 'react';
 import styled, { ThemeContext } from 'styled-components';
-import { ChainId, Pair } from '@intercroneswap/v2-sdk';
+import { Pair, Token } from '@intercroneswap/v2-sdk';
 import { Link } from 'react-router-dom';
 import { SwapPoolTabs } from '../../components/NavigationTabs';
 import FullPositionCard from '../../components/PositionCard';
-import { useTokenBalancesWithLoadingIndicator } from '../../state/wallet/hooks';
-import { StyledInternalLink, ExternalLink, TYPE, HideSmall, Divider, Button, isMobile } from '../../theme';
+import { StyledInternalLink, ExternalLink, TYPE, HideSmall, Divider, Button } from '../../theme';
 import Card, { GreyCard, LightCard } from '../../components/Card';
 import { AutoRow, RowBetween } from '../../components/Row';
 import { ButtonPrimary, ButtonSecondary } from '../../components/Button';
 import { AutoColumn } from '../../components/Column';
 import { useActiveWeb3React } from '../../hooks';
-import { usePairs } from '../../data/Reserves';
-import { useAsyncV1LiquidityTokens, useTrackedTokenPairs } from '../../state/user/hooks';
+import { PairState, usePairsByAddresses } from '../../data/Reserves';
 import { Dots } from '../../components/swap/styleds';
 import { CardSection, DataCard, CardNoise } from '../../components/vote/styled';
 import { useWalletModalToggle } from '../../state/application/hooks';
 import { StyledHeading } from '../App';
-import { BACKEND_URL } from '../../constants';
-import { currencyFormatter } from '../../utils';
-import useInterval from '../../hooks/useInterval';
+import { useWalletLiquidityRegistry } from '../../hooks/useMarketRegistry';
+import { tronAddressToEvmAddress } from '../../tron-config';
+import { useAllTokens } from '../../hooks/Tokens';
+import { getActiveSwapVersion, versionedPath } from '../../swapVersion';
 
 const PageWrapper = styled(AutoColumn)`
   max-width: 840px;
@@ -81,64 +80,82 @@ const ResponsiveButtonSecondary = styled(ButtonSecondary)`
 
 export default function Pool() {
   const theme = useContext(ThemeContext);
+  const swapVersion = getActiveSwapVersion();
   const { account, chainId } = useActiveWeb3React();
-
-  const trackedTokenPairs = useTrackedTokenPairs();
-  const tokenPairsWithLiquidityTokens = useAsyncV1LiquidityTokens(trackedTokenPairs);
-  const [totalValueLocked, setTotalValueLocked] = useState('');
-
-  const fetchData = async () => {
-    try {
-      const response = await fetch(`${BACKEND_URL}/markets/totalLocked?chainId=${chainId && ChainId.MAINNET}`);
-      const responseData = await response.json();
-      setTotalValueLocked(responseData.data.usdAmount);
-    } catch (error) {
-      console.error('Error fetching totalLocked:', error);
-    }
-  };
-
-  useEffect(() => {
-    fetchData();
-  }, [chainId]);
-
-  useInterval(() => {
-    fetchData();
-  }, 1000 * 30);
-
-  const liquidityTokens = useMemo(
-    () => tokenPairsWithLiquidityTokens.map((tpwlt) => tpwlt.liquidityToken),
-    [tokenPairsWithLiquidityTokens],
-  );
-  const [v1PairsBalances, fetchingV1PairBalances] = useTokenBalancesWithLoadingIndicator(
-    account ?? undefined,
-    liquidityTokens,
-  );
-
-  const liquidityTokensWithBalances = useMemo(
+  const allTokens = useAllTokens();
+  const tokensByAddress = useMemo(
     () =>
-      tokenPairsWithLiquidityTokens.filter(({ liquidityToken }) =>
-        v1PairsBalances[liquidityToken.address]?.greaterThan('0'),
-      ),
-    [tokenPairsWithLiquidityTokens, v1PairsBalances],
+      Object.values(allTokens).reduce<{ [address: string]: Token }>((tokens, token) => {
+        tokens[token.address.toLowerCase()] = token;
+        return tokens;
+      }, {}),
+    [allTokens],
   );
+  const {
+    positions: registryPositions,
+    loading: registryLoading,
+    error: registryError,
+    refresh: refreshRegistry,
+  } = useWalletLiquidityRegistry(account);
 
-  const v1Pairs = usePairs(liquidityTokensWithBalances.map(({ tokens }) => tokens));
-  const v1IsLoading =
-    fetchingV1PairBalances ||
-    v1Pairs?.length < liquidityTokensWithBalances.length ||
-    v1Pairs?.some((V1Pair) => !V1Pair);
+  const registryPairs = useMemo(() => {
+    if (!chainId) return [];
+    return registryPositions.flatMap((position) => {
+      if (Number(position.lp_balance_raw || '0') <= 0) return [];
+      try {
+        const token0Address = tronAddressToEvmAddress(position.token0_address);
+        const token1Address = tronAddressToEvmAddress(position.token1_address);
+        const token0 =
+          tokensByAddress[token0Address.toLowerCase()] ||
+          new Token(
+            chainId,
+            token0Address,
+            Number(position.token0_decimals),
+            position.token0_symbol,
+            position.token0_name,
+          );
+        const token1 =
+          tokensByAddress[token1Address.toLowerCase()] ||
+          new Token(
+            chainId,
+            token1Address,
+            Number(position.token1_decimals),
+            position.token1_symbol,
+            position.token1_name,
+          );
+        return [
+          {
+            pairAddress: tronAddressToEvmAddress(position.pair_address),
+            tokens: [token0, token1] as [Token, Token],
+          },
+        ];
+      } catch (error) {
+        console.warn('Ignoring invalid market registry position', position.pair_address, error);
+        return [];
+      }
+    });
+  }, [chainId, registryPositions, tokensByAddress]);
 
-  const allV1PairsWithLiquidity = v1Pairs.map(([, pair]) => pair).filter((v1Pair): v1Pair is Pair => Boolean(v1Pair));
+  const v1Pairs = usePairsByAddresses(registryPairs);
+  const v1IsLoading = registryLoading || v1Pairs.some(([state]) => state === PairState.LOADING);
+  const allV1PairsWithLiquidity = v1Pairs
+    .filter(([state]) => state === PairState.EXISTS)
+    .map(([, pair]) => pair)
+    .filter((pair): pair is Pair => Boolean(pair));
+
+  const legacyStakedPositions = useMemo(
+    () =>
+      swapVersion === 'v1'
+        ? registryPositions.filter((position) => Number(position.staked_lp_balance_raw || '0') > 0)
+        : [],
+    [registryPositions, swapVersion],
+  );
 
   const toggleWalletModal = useWalletModalToggle();
 
   return (
     <>
-      <StyledHeading className="lptext">Liquidity Pool</StyledHeading>
-      <AutoRow justify="center" gap="1rem" style={{ marginBottom: isMobile ? '.5rem' : '2rem' }}>
-        <TYPE.white fontSize="1.3rem">Total value locked</TYPE.white>
-        <TYPE.yellow fontSize="1.3rem">{currencyFormatter.format(Number(totalValueLocked))}</TYPE.yellow>
-      </AutoRow>
+      <StyledHeading className="lptext">Liquidity Pool {swapVersion.toUpperCase()}</StyledHeading>
 
       <PageWrapper>
         <VoteCard>
@@ -177,10 +194,10 @@ export default function Pool() {
           ) : (
             <AutoColumn>
               <AutoRow gap={'20px'} style={{ margin: 0 }} justify="space-between" id="liqimp">
-                <StyledInternalLink to="/add/TRX" style={{ flexGrow: 1, width: 'auto' }}>
+                <StyledInternalLink to={versionedPath('/add/TRX')} style={{ flexGrow: 1, width: 'auto' }}>
                   <Button>Add Liquidity</Button>
                 </StyledInternalLink>
-                <StyledInternalLink style={{ flexGrow: 1, width: 'auto' }} to="/find">
+                <StyledInternalLink style={{ flexGrow: 1, width: 'auto' }} to={versionedPath('/find')}>
                   <Button>Import</Button>
                 </StyledInternalLink>
               </AutoRow>
@@ -196,10 +213,15 @@ export default function Pool() {
                     </TYPE.mediumHeader>
                   </HideSmall>
                   <ButtonRow style={{ display: 'none' }}>
-                    <ResponsiveButtonSecondary as={Link} padding="6px 8px" to="/create/TRX">
+                    <ResponsiveButtonSecondary as={Link} padding="6px 8px" to={versionedPath('/create/TRX')}>
                       Create a pair
                     </ResponsiveButtonSecondary>
-                    <ResponsiveButtonPrimary id="join-pool-button" as={Link} padding="6px 8px" to="/add/TRX">
+                    <ResponsiveButtonPrimary
+                      id="join-pool-button"
+                      as={Link}
+                      padding="6px 8px"
+                      to={versionedPath('/add/TRX')}
+                    >
                       <TYPE.white fontWeight={500} fontSize={16}>
                         Add Liquidity
                       </TYPE.white>
@@ -215,16 +237,70 @@ export default function Pool() {
                     Connect to a wallet to view your liquidity.
                   </TYPE.body>
                 </GreyCard>
+              ) : registryError ? (
+                <GreyCard padding="12px">
+                  <TYPE.body color={theme.text1} textAlign="left">
+                    Market registry unavailable. {registryError}
+                  </TYPE.body>
+                  <Button style={{ marginTop: '12px' }} onClick={refreshRegistry}>
+                    Retry
+                  </Button>
+                </GreyCard>
               ) : v1IsLoading ? (
                 <GreyCard padding="12px">
                   <TYPE.body color={theme.text1} textAlign="left">
-                    <Dots>Loading</Dots>
+                    <Dots>Loading positions</Dots>
                   </TYPE.body>
                 </GreyCard>
               ) : allV1PairsWithLiquidity?.length > 0 ? (
                 <>
                   {allV1PairsWithLiquidity.map((v1Pair) => (
                     <FullPositionCard key={v1Pair.liquidityToken.address} pair={v1Pair} />
+                  ))}
+                  {legacyStakedPositions.map((position) => (
+                    <GreyCard key={`${position.pair_address}-staked`} padding="14px">
+                      <RowBetween>
+                        <div>
+                          <TYPE.body fontWeight={600}>
+                            {position.token0_symbol} / {position.token1_symbol}
+                          </TYPE.body>
+                          <TYPE.small color={theme.text2}>Legacy V1 staking position</TYPE.small>
+                        </div>
+                        <div style={{ textAlign: 'right' }}>
+                          <TYPE.body>
+                            {(Number(position.staked_lp_balance_raw || '0') / 1e18).toLocaleString(undefined, {
+                              maximumFractionDigits: 8,
+                            })}{' '}
+                            LP
+                          </TYPE.body>
+                          <StyledInternalLink to={versionedPath('/farms')}>View staking details</StyledInternalLink>
+                        </div>
+                      </RowBetween>
+                    </GreyCard>
+                  ))}
+                </>
+              ) : legacyStakedPositions.length > 0 ? (
+                <>
+                  {legacyStakedPositions.map((position) => (
+                    <GreyCard key={`${position.pair_address}-staked`} padding="14px">
+                      <RowBetween>
+                        <div>
+                          <TYPE.body fontWeight={600}>
+                            {position.token0_symbol} / {position.token1_symbol}
+                          </TYPE.body>
+                          <TYPE.small color={theme.text2}>Legacy V1 staking position</TYPE.small>
+                        </div>
+                        <div style={{ textAlign: 'right' }}>
+                          <TYPE.body>
+                            {(Number(position.staked_lp_balance_raw || '0') / 1e18).toLocaleString(undefined, {
+                              maximumFractionDigits: 8,
+                            })}{' '}
+                            LP
+                          </TYPE.body>
+                          <StyledInternalLink to={versionedPath('/farms')}>View staking details</StyledInternalLink>
+                        </div>
+                      </RowBetween>
+                    </GreyCard>
                   ))}
                 </>
               ) : (

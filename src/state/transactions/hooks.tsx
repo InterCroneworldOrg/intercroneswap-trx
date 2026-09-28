@@ -88,6 +88,27 @@ export function useHasPendingApproval(tokenAddress: string | undefined, spender:
   );
 }
 
+export function useHasConfirmedApproval(tokenAddress: string | undefined, spender: string | undefined): boolean {
+  const allTransactions = useAllTransactions();
+  return useMemo(() => {
+    if (typeof tokenAddress !== 'string' || typeof spender !== 'string') return false;
+    const normalizedToken = tokenAddress.toLowerCase();
+    const normalizedSpender = spender.toLowerCase();
+    const recentThreshold = Date.now() - 10 * 60 * 1000;
+
+    return Object.values(allTransactions).some((tx) => {
+      const approval = tx?.approval;
+      return Boolean(
+        approval &&
+          tx.receipt?.status === 1 &&
+          (tx.confirmedTime || tx.addedTime) >= recentThreshold &&
+          approval.tokenAddress.toLowerCase() === normalizedToken &&
+          approval.spender.toLowerCase() === normalizedSpender,
+      );
+    });
+  }, [allTransactions, spender, tokenAddress]);
+}
+
 // watch for submissions to claim
 // return null if not done loading, return undefined if not found
 export function useUserHasSubmittedClaim(account?: string): {

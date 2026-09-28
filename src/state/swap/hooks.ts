@@ -1,11 +1,8 @@
-import useENS from '../../hooks/useENS';
-import { Version } from '../../hooks/useToggledVersion';
 import { parseUnits } from '@ethersproject/units';
 import { Currency, CurrencyAmount, ETHER, JSBI, Token, TokenAmount, Trade } from '@intercroneswap/v2-sdk';
 import { ParsedQs } from 'qs';
 import { useCallback, useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { useVTrade } from '../../data/V';
 import { useActiveWeb3React } from '../../hooks';
 import { useCurrency } from '../../hooks/Tokens';
 import { useTradeExactIn, useTradeExactOut } from '../../hooks/Trades';
@@ -15,10 +12,8 @@ import { AppDispatch, AppState } from '../index';
 import { useCurrencyBalances } from '../wallet/hooks';
 import { Field, replaceSwapState, selectCurrency, setRecipient, switchCurrencies, typeInput } from './actions';
 import { SwapState } from './reducer';
-import useToggledVersion from '../../hooks/useToggledVersion';
 import { useUserSlippageTolerance } from '../user/hooks';
 import { computeSlippageAdjustedAmounts } from '../../utils/prices';
-// import { ACTUAL_LAUCH_TOKEN } from '../../constants';
 
 export function useSwapState(): AppState['swap'] {
   return useSelector<AppState, AppState['swap']>((state) => state.swap);
@@ -114,24 +109,19 @@ export function useDerivedSwapInfo(): {
   parsedAmount: CurrencyAmount | undefined;
   v1Trade: Trade | undefined;
   inputError?: string;
-  vTrade: Trade | undefined;
 } {
   const { account } = useActiveWeb3React();
-
-  const toggledVersion = useToggledVersion();
 
   const {
     independentField,
     typedValue,
     [Field.INPUT]: { currencyId: inputCurrencyId },
     [Field.OUTPUT]: { currencyId: outputCurrencyId },
-    recipient,
   } = useSwapState();
 
   const inputCurrency = useCurrency(inputCurrencyId);
   const outputCurrency = useCurrency(outputCurrencyId);
-  const recipientLookup = useENS(recipient ?? undefined);
-  const to: string | null = (recipient === null ? account : recipientLookup.address) ?? null;
+  const to: string | null = account ?? null;
 
   const relevantTokenBalances = useCurrencyBalances(account ?? undefined, [
     inputCurrency ?? undefined,
@@ -155,9 +145,6 @@ export function useDerivedSwapInfo(): {
     [Field.INPUT]: inputCurrency ?? undefined,
     [Field.OUTPUT]: outputCurrency ?? undefined,
   };
-
-  // get link to trade on v, if a better rate exists
-  const vTrade = useVTrade(isExactIn, currencies[Field.INPUT], currencies[Field.OUTPUT], parsedAmount);
 
   let inputError: string | undefined;
   if (!account) {
@@ -190,18 +177,10 @@ export function useDerivedSwapInfo(): {
   const slippageAdjustedAmounts =
     v1Trade && allowedSlippage && computeSlippageAdjustedAmounts(v1Trade, allowedSlippage);
 
-  const slippageAdjustedAmountsV = vTrade && allowedSlippage && computeSlippageAdjustedAmounts(vTrade, allowedSlippage);
-
-  // compare input balance to max input based on version
+  // Compare the input balance against the router trade.
   const [balanceIn, amountIn] = [
     currencyBalances[Field.INPUT],
-    toggledVersion === Version.v
-      ? slippageAdjustedAmountsV
-        ? slippageAdjustedAmountsV[Field.INPUT]
-        : null
-      : slippageAdjustedAmounts
-      ? slippageAdjustedAmounts[Field.INPUT]
-      : null,
+    slippageAdjustedAmounts ? slippageAdjustedAmounts[Field.INPUT] : null,
   ];
 
   if (balanceIn && amountIn && balanceIn.lessThan(amountIn)) {
@@ -214,7 +193,6 @@ export function useDerivedSwapInfo(): {
     parsedAmount,
     v1Trade: v1Trade ?? undefined,
     inputError,
-    vTrade,
   };
 }
 
@@ -236,13 +214,11 @@ function parseIndependentFieldURLParameter(urlParam: any): Field {
   return typeof urlParam === 'string' && urlParam.toLowerCase() === 'output' ? Field.OUTPUT : Field.INPUT;
 }
 
-const ENS_NAME_REGEX = /^[-a-zA-Z0-9@:%._+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_+.~#?&/=]*)?$/;
 const ADDRESS_REGEX = /^0x[a-fA-F0-9]{40}$/;
 function validatedRecipient(recipient: any): string | null {
   if (typeof recipient !== 'string') return null;
   const address = isAddress(recipient);
   if (address) return address;
-  if (ENS_NAME_REGEX.test(recipient)) return recipient;
   if (ADDRESS_REGEX.test(recipient)) return recipient;
   return null;
 }
