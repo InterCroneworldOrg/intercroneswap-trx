@@ -51,10 +51,30 @@ const Address = styled.div`
   overflow-wrap: anywhere;
 `;
 
+const DetectionLink = styled.a`
+  color: ${({ theme }) => theme.primary3};
+  font-size: 16px;
+  text-decoration: none;
+
+  :hover,
+  :focus {
+    color: ${({ theme }) => theme.primary3};
+    text-decoration: underline;
+  }
+`;
+
 const STAKING_ABI = ['function exit()'];
 
 function shortAddress(address: string): string {
   return `${address.slice(0, 7)}...${address.slice(-6)}`;
+}
+
+function isDiscoveredV1Farm(farm: EndedFarm): boolean {
+  return /discovered v1 lp staking contract/i.test(farm.legacy_label || '');
+}
+
+function farmTronscanUrl(farmAddress: string): string {
+  return `https://tronscan.org/#/address/${farmAddress}`;
 }
 
 export default function Farms() {
@@ -144,6 +164,7 @@ export default function Farms() {
                     const needsExit = Boolean(position?.exit_required);
                     const submitted = submittedFarms[farm.farm_address];
                     const pending = pendingFarm === farm.farm_address;
+                    const discoveredV1Farm = isDiscoveredV1Farm(farm);
 
                     return (
                       <FarmCard key={farm.farm_address}>
@@ -156,13 +177,27 @@ export default function Farms() {
                           <Address title={farm.farm_address}>Contract: {shortAddress(farm.farm_address)}</Address>
 
                           {position?.has_stake && (
-                            <TYPE.body color="primary3">Staked LP tokens detected</TYPE.body>
+                            <DetectionLink
+                              href={farmTronscanUrl(farm.farm_address)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              title={`Open ${farm.farm_address} on TronScan`}
+                            >
+                              Staked LP tokens detected ↗
+                            </DetectionLink>
                           )}
                           {position?.has_rewards && (
-                            <TYPE.body color="primary3">Unclaimed rewards detected</TYPE.body>
+                            <DetectionLink
+                              href={farmTronscanUrl(farm.farm_address)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              title={`Open ${farm.farm_address} on TronScan`}
+                            >
+                              Unclaimed rewards detected ↗
+                            </DetectionLink>
                           )}
 
-                          {needsExit && account && (
+                          {needsExit && account && !discoveredV1Farm && (
                             <ButtonPrimary
                               disabled={Boolean(pending || submitted)}
                               onClick={() => exitFarm(farm)}
